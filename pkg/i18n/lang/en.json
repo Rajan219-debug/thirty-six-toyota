@@ -97,7 +97,19 @@
                 "multiple_message": "You have the following overdue tasks:",
                 "overdue_since": "since %[1]s",
                 "overdue_now": "now",
-                "overdue": "overdue %[1]s"
+                "overdue": "overdue %[1]s",
+                "escalation_subject": "Task \"%[1]s\" (%[2]s) is overdue",
+                "escalation_message": "The task \"%[1]s\" (%[2]s) you assigned is now overdue and has not been completed."
+            },
+            "closure": {
+                "requested_subject": "%[1]s wants to close the overdue task \"%[2]s\" (%[3]s)",
+                "requested_message": "%[1]s marked the overdue task \"%[2]s\" as complete and needs your approval to close it.",
+                "approved_subject": "\"%[1]s\" (%[2]s) was approved as completed",
+                "approved_message": "%[1]s approved the overdue closure of \"%[2]s\". It is now marked as completed (late).",
+                "rejected_subject": "\"%[1]s\" (%[2]s) closure was rejected",
+                "rejected_message": "%[1]s rejected closing \"%[2]s\": %[3]s",
+                "disputed_subject": "%[1]s disputed the rejection of \"%[2]s\" (%[3]s)",
+                "disputed_message": "%[1]s disputed the rejection of closing the overdue task \"%[2]s\". Please review."
             }
         },
         "project": {

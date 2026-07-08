@@ -11,6 +11,8 @@ import type {IBucket} from './IBucket'
 import type {IRelationKind} from '@/types/IRelationKind'
 import type {IRepeatAfter} from '@/types/IRepeatAfter'
 import type {IRepeatMode} from '@/types/IRepeatMode'
+import type {ITaskStatus} from '@/types/ITaskStatus'
+import type {IPriorityBucket} from '@/types/IPriorityBucket'
 
 import type {PartialWithId} from '@/types/PartialWithId'
 import type {ITaskReminder} from '@/modelTypes/ITaskReminder'
@@ -25,8 +27,17 @@ export interface ITask extends IAbstract {
 	doneAt: Date | null
 	deletedAt: Date | null
 	priority: Priority
+	urgency: number
+	importance: number
+	priorityScore: number
+	priorityBucket: IPriorityBucket
 	labels: ILabel[]
 	assignees: IUser[]
+
+	status: ITaskStatus
+	completionClaimedAt: Date | null
+	confirmedBy: IUser | null
+	rejectionReason: string
 
 	dueDate: Date | null
 	startDate: Date | null

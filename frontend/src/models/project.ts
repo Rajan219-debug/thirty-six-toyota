@@ -16,6 +16,8 @@ export default class ProjectModel extends AbstractModel<IProject> implements IPr
 	description = ''
 	owner: IUser = UserModel
 	tasks: ITask[] = []
+	fallbackApproverId = 0
+	fallbackApprover: IUser | null = null
 	isArchived = false
 	hexColor = ''
 	identifier = ''
@@ -35,6 +37,7 @@ export default class ProjectModel extends AbstractModel<IProject> implements IPr
 		this.assignData(data)
 
 		this.owner = new UserModel(this.owner)
+		this.fallbackApprover = this.fallbackApprover ? new UserModel(this.fallbackApprover) : null
 
 		// Make all tasks to task models
 		this.tasks = this.tasks.map(t => {

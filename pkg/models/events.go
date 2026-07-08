@@ -212,6 +212,66 @@ func (t *TasksOverdueEvent) Name() string {
 	return "tasks.overdue"
 }
 
+// TaskCompletionClaimedEvent represents an event where an assignee attempted to close an overdue task
+type TaskCompletionClaimedEvent struct {
+	Task *Task      `json:"task"`
+	Doer *user.User `json:"doer"`
+}
+
+// Name defines the name for TaskCompletionClaimedEvent
+func (t *TaskCompletionClaimedEvent) Name() string {
+	return "task.completion.claimed"
+}
+
+// TaskClosureRequestedEvent represents an event where an assignee informed the approver(s) about a pending overdue closure
+type TaskClosureRequestedEvent struct {
+	Task      *Task        `json:"task"`
+	Doer      *user.User   `json:"doer"`
+	Approvers []*user.User `json:"approvers"`
+}
+
+// Name defines the name for TaskClosureRequestedEvent
+func (t *TaskClosureRequestedEvent) Name() string {
+	return "task.closure.requested"
+}
+
+// TaskClosureApprovedEvent represents an event where an overdue task's closure was approved
+type TaskClosureApprovedEvent struct {
+	Task      *Task        `json:"task"`
+	Doer      *user.User   `json:"doer"`
+	Assignees []*user.User `json:"assignees"`
+}
+
+// Name defines the name for TaskClosureApprovedEvent
+func (t *TaskClosureApprovedEvent) Name() string {
+	return "task.closure.approved"
+}
+
+// TaskClosureRejectedEvent represents an event where an overdue task's closure was rejected
+type TaskClosureRejectedEvent struct {
+	Task      *Task        `json:"task"`
+	Doer      *user.User   `json:"doer"`
+	Reason    string       `json:"reason"`
+	Assignees []*user.User `json:"assignees"`
+}
+
+// Name defines the name for TaskClosureRejectedEvent
+func (t *TaskClosureRejectedEvent) Name() string {
+	return "task.closure.rejected"
+}
+
+// TaskClosureDisputedEvent represents an event where an assignee disputed a closure rejection, escalating to the project owner
+type TaskClosureDisputedEvent struct {
+	Task  *Task      `json:"task"`
+	Doer  *user.User `json:"doer"`
+	Admin *user.User `json:"admin"`
+}
+
+// Name defines the name for TaskClosureDisputedEvent
+func (t *TaskClosureDisputedEvent) Name() string {
+	return "task.closure.disputed"
+}
+
 ////////////////////
 // Project Events //
 ////////////////////

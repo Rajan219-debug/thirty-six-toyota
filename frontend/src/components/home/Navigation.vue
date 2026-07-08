@@ -40,6 +40,16 @@
 				</li>
 				<li>
 					<RouterLink
+						:to="{ name: 'tasks.prioritized'}"
+					>
+						<span class="menu-item-icon icon">
+							<Icon icon="chart-line" />
+						</span>
+						{{ $t('navigation.prioritized') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink
 						v-shortcut="'KeyG KeyP'"
 						:to="{ name: 'projects.index'}"
 					>

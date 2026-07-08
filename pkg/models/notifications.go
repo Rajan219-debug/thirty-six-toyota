@@ -40,6 +40,11 @@ func init() {
 	notifications.Register(func() notifications.Notification { return &ProjectCreatedNotification{} })
 	notifications.Register(func() notifications.Notification { return &TeamMemberAddedNotification{} })
 	notifications.Register(func() notifications.Notification { return &UserMentionedInTaskNotification{} })
+	notifications.Register(func() notifications.Notification { return &TaskClosureRequestedNotification{} })
+	notifications.Register(func() notifications.Notification { return &TaskClosureApprovedNotification{} })
+	notifications.Register(func() notifications.Notification { return &TaskClosureRejectedNotification{} })
+	notifications.Register(func() notifications.Notification { return &TaskClosureDisputedNotification{} })
+	notifications.Register(func() notifications.Notification { return &TaskOverdueEscalationNotification{} })
 }
 
 // getDoerAvatarDataURI returns the avatar data URI for a user, for use in email headers.
@@ -324,6 +329,186 @@ func (n *TeamMemberAddedNotification) ToDB() interface{} {
 // Name returns the name of the notification
 func (n *TeamMemberAddedNotification) Name() string {
 	return "team.member.added"
+}
+
+// TaskClosureRequestedNotification notifies the approver that an assignee wants to close an overdue task
+type TaskClosureRequestedNotification struct {
+	Doer     *user.User `json:"doer"`
+	Task     *Task      `json:"task"`
+	Approver *user.User `json:"-"`
+}
+
+// ToTitle returns the translated one-line title for TaskClosureRequestedNotification
+func (n *TaskClosureRequestedNotification) ToTitle(lang string) string {
+	return i18n.T(lang, "notifications.task.closure.requested_subject", n.Doer.GetName(), n.Task.Title, n.Task.GetFullIdentifier())
+}
+
+// ToMail returns the mail notification for TaskClosureRequestedNotification
+func (n *TaskClosureRequestedNotification) ToMail(lang string) *notifications.Mail {
+	return notifications.NewMail().
+		From(n.Doer.GetNameAndFromEmail()).
+		Greeting(i18n.T(lang, "notifications.greeting", n.Approver.GetName())).
+		Line(i18n.T(lang, "notifications.task.closure.requested_message", notifications.EscapeMarkdown(n.Doer.GetName()), notifications.EscapeMarkdown(n.Task.Title))).
+		Action(i18n.T(lang, "notifications.common.actions.open_task"), n.Task.GetFrontendURL()).
+		IncludeLinkToSettings(lang)
+}
+
+// ToDB returns the TaskClosureRequestedNotification notification in a format which can be saved in the db
+func (n *TaskClosureRequestedNotification) ToDB() interface{} {
+	return n
+}
+
+// Name returns the name of the notification
+func (n *TaskClosureRequestedNotification) Name() string {
+	return "task.closure.requested"
+}
+
+// ThreadID returns the thread ID for email threading
+func (n *TaskClosureRequestedNotification) ThreadID() string {
+	return getThreadID(n.Task.ID)
+}
+
+// TaskClosureApprovedNotification notifies the assignee that their overdue-closure request was approved
+type TaskClosureApprovedNotification struct {
+	Doer *user.User `json:"doer"`
+	Task *Task      `json:"task"`
+}
+
+// ToTitle returns the translated one-line title for TaskClosureApprovedNotification
+func (n *TaskClosureApprovedNotification) ToTitle(lang string) string {
+	return i18n.T(lang, "notifications.task.closure.approved_subject", n.Task.Title, n.Task.GetFullIdentifier())
+}
+
+// ToMail returns the mail notification for TaskClosureApprovedNotification
+func (n *TaskClosureApprovedNotification) ToMail(lang string) *notifications.Mail {
+	return notifications.NewMail().
+		From(n.Doer.GetNameAndFromEmail()).
+		Line(i18n.T(lang, "notifications.task.closure.approved_message", notifications.EscapeMarkdown(n.Doer.GetName()), notifications.EscapeMarkdown(n.Task.Title))).
+		Action(i18n.T(lang, "notifications.common.actions.open_task"), n.Task.GetFrontendURL()).
+		IncludeLinkToSettings(lang)
+}
+
+// ToDB returns the TaskClosureApprovedNotification notification in a format which can be saved in the db
+func (n *TaskClosureApprovedNotification) ToDB() interface{} {
+	return n
+}
+
+// Name returns the name of the notification
+func (n *TaskClosureApprovedNotification) Name() string {
+	return "task.closure.approved"
+}
+
+// ThreadID returns the thread ID for email threading
+func (n *TaskClosureApprovedNotification) ThreadID() string {
+	return getThreadID(n.Task.ID)
+}
+
+// TaskClosureRejectedNotification notifies the assignee that their overdue-closure request was rejected
+type TaskClosureRejectedNotification struct {
+	Doer   *user.User `json:"doer"`
+	Task   *Task      `json:"task"`
+	Reason string     `json:"reason"`
+}
+
+// ToTitle returns the translated one-line title for TaskClosureRejectedNotification
+func (n *TaskClosureRejectedNotification) ToTitle(lang string) string {
+	return i18n.T(lang, "notifications.task.closure.rejected_subject", n.Task.Title, n.Task.GetFullIdentifier())
+}
+
+// ToMail returns the mail notification for TaskClosureRejectedNotification
+func (n *TaskClosureRejectedNotification) ToMail(lang string) *notifications.Mail {
+	return notifications.NewMail().
+		From(n.Doer.GetNameAndFromEmail()).
+		Line(i18n.T(lang, "notifications.task.closure.rejected_message", notifications.EscapeMarkdown(n.Doer.GetName()), notifications.EscapeMarkdown(n.Task.Title), notifications.EscapeMarkdown(n.Reason))).
+		Action(i18n.T(lang, "notifications.common.actions.open_task"), n.Task.GetFrontendURL()).
+		IncludeLinkToSettings(lang)
+}
+
+// ToDB returns the TaskClosureRejectedNotification notification in a format which can be saved in the db
+func (n *TaskClosureRejectedNotification) ToDB() interface{} {
+	return n
+}
+
+// Name returns the name of the notification
+func (n *TaskClosureRejectedNotification) Name() string {
+	return "task.closure.rejected"
+}
+
+// ThreadID returns the thread ID for email threading
+func (n *TaskClosureRejectedNotification) ThreadID() string {
+	return getThreadID(n.Task.ID)
+}
+
+// TaskClosureDisputedNotification notifies a project admin that an assignee disputed a closure rejection
+type TaskClosureDisputedNotification struct {
+	Doer  *user.User `json:"doer"`
+	Task  *Task      `json:"task"`
+	Admin *user.User `json:"-"`
+}
+
+// ToTitle returns the translated one-line title for TaskClosureDisputedNotification
+func (n *TaskClosureDisputedNotification) ToTitle(lang string) string {
+	return i18n.T(lang, "notifications.task.closure.disputed_subject", n.Doer.GetName(), n.Task.Title, n.Task.GetFullIdentifier())
+}
+
+// ToMail returns the mail notification for TaskClosureDisputedNotification
+func (n *TaskClosureDisputedNotification) ToMail(lang string) *notifications.Mail {
+	return notifications.NewMail().
+		From(n.Doer.GetNameAndFromEmail()).
+		Greeting(i18n.T(lang, "notifications.greeting", n.Admin.GetName())).
+		Line(i18n.T(lang, "notifications.task.closure.disputed_message", notifications.EscapeMarkdown(n.Doer.GetName()), notifications.EscapeMarkdown(n.Task.Title))).
+		Action(i18n.T(lang, "notifications.common.actions.open_task"), n.Task.GetFrontendURL()).
+		IncludeLinkToSettings(lang)
+}
+
+// ToDB returns the TaskClosureDisputedNotification notification in a format which can be saved in the db
+func (n *TaskClosureDisputedNotification) ToDB() interface{} {
+	return n
+}
+
+// Name returns the name of the notification
+func (n *TaskClosureDisputedNotification) Name() string {
+	return "task.closure.disputed"
+}
+
+// ThreadID returns the thread ID for email threading
+func (n *TaskClosureDisputedNotification) ThreadID() string {
+	return getThreadID(n.Task.ID)
+}
+
+// TaskOverdueEscalationNotification notifies a task's assigner that it has automatically gone overdue
+type TaskOverdueEscalationNotification struct {
+	Task     *Task      `json:"task"`
+	Assigner *user.User `json:"-"`
+}
+
+// ToTitle returns the translated one-line title for TaskOverdueEscalationNotification
+func (n *TaskOverdueEscalationNotification) ToTitle(lang string) string {
+	return i18n.T(lang, "notifications.task.overdue.escalation_subject", n.Task.Title, n.Task.GetFullIdentifier())
+}
+
+// ToMail returns the mail notification for TaskOverdueEscalationNotification
+func (n *TaskOverdueEscalationNotification) ToMail(lang string) *notifications.Mail {
+	return notifications.NewMail().
+		Greeting(i18n.T(lang, "notifications.greeting", n.Assigner.GetName())).
+		Line(i18n.T(lang, "notifications.task.overdue.escalation_message", notifications.EscapeMarkdown(n.Task.Title), n.Task.GetFullIdentifier())).
+		Action(i18n.T(lang, "notifications.common.actions.open_task"), n.Task.GetFrontendURL()).
+		IncludeLinkToSettings(lang)
+}
+
+// ToDB returns the TaskOverdueEscalationNotification notification in a format which can be saved in the db
+func (n *TaskOverdueEscalationNotification) ToDB() interface{} {
+	return n
+}
+
+// Name returns the name of the notification
+func (n *TaskOverdueEscalationNotification) Name() string {
+	return "task.overdue.escalation"
+}
+
+// ThreadID returns the thread ID for email threading
+func (n *TaskOverdueEscalationNotification) ThreadID() string {
+	return getThreadID(n.Task.ID)
 }
 
 func getOverdueSinceString(until time.Duration, language string) (overdueSince string) {

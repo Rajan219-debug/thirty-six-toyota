@@ -645,6 +645,20 @@ func TestTaskCollection_ReadAll(t *testing.T) {
 		Updated:      time.Unix(1543626724, 0).In(loc),
 	}
 
+	// Status, priority score, and bucket are computed on every read in
+	// addMoreInfoToTasks. Derive the expected values with the same pure
+	// functions — their behavior is covered by task_accountability_test.go;
+	// this test is about collection and filtering.
+	for _, expected := range []*Task{
+		task1, task1WithReaction, task2, task3, task4, task5, task6, task7,
+		task8, task9, task10, task11, task12, task15, task16, task17, task18,
+		task19, task20, task21, task22, task23, task24, task25, task26, task27,
+		task28, task29, task30, task31, task32, task33, task39, task47, task48,
+	} {
+		expected.Status = CalculateTaskStatus(expected)
+		expected.PriorityScore, expected.PriorityBucket = CalculatePriorityScore(expected.Urgency, expected.Importance, expected.DueDate)
+	}
+
 	type fields struct {
 		ProjectID     int64
 		ProjectViewID int64

@@ -11,6 +11,8 @@ export interface IProject extends IAbstract {
 	description: string
 	owner: IUser
 	tasks: ITask[]
+	fallbackApproverId: number
+	fallbackApprover: IUser | null
 	isArchived: boolean
 	hexColor: string
 	identifier: string

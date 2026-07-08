@@ -60,6 +60,11 @@ func getRawTaskAssigneesForTasks(s *xorm.Session, taskIDs []int64) (taskAssignee
 	return
 }
 
+// TaskHasAssignee reports whether the given user is assigned to the given task.
+func TaskHasAssignee(s *xorm.Session, taskID, userID int64) (bool, error) {
+	return s.Exist(&TaskAssginee{TaskID: taskID, UserID: userID})
+}
+
 // Create or update a bunch of task assignees
 func (t *Task) updateTaskAssignees(s *xorm.Session, assignees []*user.User, doer web.Auth) (err error) {
 

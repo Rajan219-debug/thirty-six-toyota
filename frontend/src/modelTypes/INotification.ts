@@ -13,6 +13,11 @@ export const NOTIFICATION_NAMES = {
 	'PROJECT_CREATED': 'project.created',
 	'TEAM_MEMBER_ADDED': 'team.member.added',
 	'TASK_MENTIONED': 'task.mentioned',
+	'TASK_CLOSURE_REQUESTED': 'task.closure.requested',
+	'TASK_CLOSURE_APPROVED': 'task.closure.approved',
+	'TASK_CLOSURE_REJECTED': 'task.closure.rejected',
+	'TASK_CLOSURE_DISPUTED': 'task.closure.disputed',
+	'TASK_OVERDUE_ESCALATION': 'task.overdue.escalation',
 } as const
 
 interface Notification {
@@ -48,10 +53,19 @@ interface NotificationMemberAdded extends Notification {
 	team: ITeam
 }
 
+interface NotificationClosureRejected extends Notification {
+	task: ITask
+	reason: string
+}
+
+interface NotificationOverdueEscalation {
+	task: ITask
+}
+
 export interface INotification extends IAbstract {
 	id: number
 	name: string
-	notification: NotificationTaskComment | NotificationTask | NotificationAssigned | NotificationCreated | NotificationMemberAdded | NotificationTaskReminder
+	notification: NotificationTaskComment | NotificationTask | NotificationAssigned | NotificationCreated | NotificationMemberAdded | NotificationTaskReminder | NotificationClosureRejected | NotificationOverdueEscalation
 	read: boolean
 	readAt: Date | null
 

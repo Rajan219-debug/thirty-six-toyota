@@ -1,4 +1,6 @@
 import {PRIORITIES, type Priority} from '@/constants/priorities'
+import {TASK_STATUS} from '@/types/ITaskStatus'
+import {PRIORITY_BUCKET} from '@/types/IPriorityBucket'
 
 import type {ITask} from '@/modelTypes/ITask'
 import type {ILabel} from '@/modelTypes/ILabel'
@@ -11,6 +13,8 @@ import type {IBucket} from '@/modelTypes/IBucket'
 import type {IRepeatAfter} from '@/types/IRepeatAfter'
 import type {IRelationKind} from '@/types/IRelationKind'
 import {TASK_REPEAT_MODES, type IRepeatMode} from '@/types/IRepeatMode'
+import type {ITaskStatus} from '@/types/ITaskStatus'
+import type {IPriorityBucket} from '@/types/IPriorityBucket'
 
 import {parseDateOrNull} from '@/helpers/parseDateOrNull'
 import {secondsToPeriod} from '@/helpers/time/period'
@@ -65,8 +69,17 @@ export default class TaskModel extends AbstractModel<ITask> implements ITask {
 	doneAt: Date | null = null
 	deletedAt: Date | null = null
 	priority: Priority = PRIORITIES.UNSET
+	urgency = 0
+	importance = 0
+	priorityScore = 0
+	priorityBucket: IPriorityBucket = PRIORITY_BUCKET.DO_LATER
 	labels: ILabel[] = []
 	assignees: IUser[] = []
+
+	status: ITaskStatus = TASK_STATUS.PENDING
+	completionClaimedAt: Date | null = null
+	confirmedBy: IUser | null = null
+	rejectionReason = ''
 
 	dueDate: Date | null = 0
 	startDate: Date | null = 0
@@ -152,6 +165,9 @@ export default class TaskModel extends AbstractModel<ITask> implements ITask {
 		this.createdBy = new UserModel(this.createdBy)
 		this.created = new Date(this.created)
 		this.updated = new Date(this.updated)
+
+		this.completionClaimedAt = parseDateOrNull(this.completionClaimedAt)
+		this.confirmedBy = this.confirmedBy ? new UserModel(this.confirmedBy) : null
 
 		this.projectId = Number(this.projectId)
 

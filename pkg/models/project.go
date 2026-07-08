@@ -55,6 +55,11 @@ type Project struct {
 	// The user who created this project.
 	Owner *user.User `xorm:"-" json:"owner" valid:"-" readOnly:"true" doc:"The user who owns this project. Set by the server; ignored on write."`
 
+	// The user who approves overdue-task closures on this project when the task's original assigner is unavailable.
+	FallbackApproverID int64 `xorm:"bigint null 'fallback_approver_id'" json:"fallback_approver_id" doc:"The id of the user who approves overdue-task closures on this project when the task's original assigner is unavailable. 0 if unset."`
+	// The fallback approver user object, resolved from fallback_approver_id.
+	FallbackApprover *user.User `xorm:"-" json:"fallback_approver" readOnly:"true" doc:"The fallback approver, resolved from fallback_approver_id. Read-only here; set fallback_approver_id to change it."`
+
 	// Whether a project is archived.
 	IsArchived bool `xorm:"not null default false" json:"is_archived" query:"is_archived" doc:"Whether the project is archived. Archived projects are read-only."`
 
@@ -825,6 +830,9 @@ func addProjectDetails(s *xorm.Session, projects []*Project, a web.Auth) (err er
 		ownerIDs = append(ownerIDs, p.OwnerID)
 		projectIDs = append(projectIDs, p.ID)
 		fileIDs = append(fileIDs, p.BackgroundFileID)
+		if p.FallbackApproverID != 0 {
+			ownerIDs = append(ownerIDs, p.FallbackApproverID)
+		}
 	}
 
 	owners, err := user.GetUsersByIDs(s, ownerIDs)
@@ -877,6 +885,11 @@ func addProjectDetails(s *xorm.Session, projects []*Project, a web.Auth) (err er
 	for _, p := range projects {
 		if o, exists := owners[p.OwnerID]; exists {
 			p.Owner = o
+		}
+		if p.FallbackApproverID != 0 {
+			if fa, exists := owners[p.FallbackApproverID]; exists {
+				p.FallbackApprover = fa
+			}
 		}
 		if p.BackgroundFileID != 0 {
 			p.BackgroundInformation = &ProjectBackgroundType{Type: ProjectBackgroundUpload}
@@ -1212,6 +1225,7 @@ func UpdateProject(s *xorm.Session, project *Project, auth web.Auth, updateProje
 		"hex_color",
 		"parent_project_id",
 		"position",
+		"fallback_approver_id",
 	}
 	if project.Description != "" {
 		colsToUpdate = append(colsToUpdate, "description")

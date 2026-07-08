@@ -63,8 +63,28 @@ export default class NotificationModel extends AbstractModel<INotification> impl
 				}
 				break
 			case NOTIFICATION_NAMES.TASK_MENTIONED:
+			case NOTIFICATION_NAMES.TASK_CLOSURE_REQUESTED:
+			case NOTIFICATION_NAMES.TASK_CLOSURE_APPROVED:
 				this.notification = {
 					doer: new UserModel(this.notification.doer),
+					task: new TaskModel(this.notification.task),
+				}
+				break
+			case NOTIFICATION_NAMES.TASK_CLOSURE_REJECTED:
+				this.notification = {
+					doer: new UserModel(this.notification.doer),
+					task: new TaskModel(this.notification.task),
+					reason: this.notification.reason,
+				}
+				break
+			case NOTIFICATION_NAMES.TASK_CLOSURE_DISPUTED:
+				this.notification = {
+					doer: new UserModel(this.notification.doer),
+					task: new TaskModel(this.notification.task),
+				}
+				break
+			case NOTIFICATION_NAMES.TASK_OVERDUE_ESCALATION:
+				this.notification = {
 					task: new TaskModel(this.notification.task),
 				}
 				break
@@ -104,6 +124,16 @@ export default class NotificationModel extends AbstractModel<INotification> impl
 				return `Reminder for ${this.notification.task.getTextIdentifier()} ${this.notification.task.title} (${this.notification.project.title})`
 			case NOTIFICATION_NAMES.TASK_MENTIONED:
 				return `${getDisplayName(this.notification.doer)} mentioned you on ${this.notification.task.getTextIdentifier()}`
+			case NOTIFICATION_NAMES.TASK_CLOSURE_REQUESTED:
+				return `${getDisplayName(this.notification.doer)} wants to close the overdue task ${this.notification.task.getTextIdentifier()}`
+			case NOTIFICATION_NAMES.TASK_CLOSURE_APPROVED:
+				return `${getDisplayName(this.notification.doer)} approved closing ${this.notification.task.getTextIdentifier()}`
+			case NOTIFICATION_NAMES.TASK_CLOSURE_REJECTED:
+				return `${getDisplayName(this.notification.doer)} rejected closing ${this.notification.task.getTextIdentifier()}: ${this.notification.reason}`
+			case NOTIFICATION_NAMES.TASK_CLOSURE_DISPUTED:
+				return `${getDisplayName(this.notification.doer)} disputed the rejection of ${this.notification.task.getTextIdentifier()}`
+			case NOTIFICATION_NAMES.TASK_OVERDUE_ESCALATION:
+				return `${this.notification.task.getTextIdentifier()} is now overdue`
 		}
 
 		return ''

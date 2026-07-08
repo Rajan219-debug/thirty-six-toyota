@@ -65,6 +65,12 @@
 
 			<ChecklistSummary :task="task" />
 
+			<TaskAccountabilityBanner
+				:task="task"
+				:project="project"
+				@update:task="Object.assign(task, $event)"
+			/>
+
 			<!-- Content and buttons -->
 			<div class="columns mbs-2">
 				<!-- Content -->
@@ -113,6 +119,29 @@
 									v-model="task.priority"
 									:disabled="!canWrite"
 									@update:modelValue="setPriority"
+								/>
+							</div>
+						</CustomTransition>
+						<CustomTransition
+							name="flash-background"
+							appear
+						>
+							<div
+								v-if="activeFields.urgencyImportance"
+								class="column"
+							>
+								<!-- Urgency / Importance -->
+								<div class="detail-title">
+									<Icon icon="chart-line" />
+									{{ $t('task.accountability.prioritization') }}
+								</div>
+								<UrgencyImportanceSelect
+									:ref="e => setFieldRef('urgencyImportance', e)"
+									v-model:urgency="task.urgency"
+									v-model:importance="task.importance"
+									:disabled="!canWrite"
+									@update:urgency="saveTask()"
+									@update:importance="saveTask()"
 								/>
 							</div>
 						</CustomTransition>
@@ -486,6 +515,13 @@
 						</XButton>
 						<XButton
 							variant="secondary"
+							icon="chart-line"
+							@click="setFieldActive('urgencyImportance')"
+						>
+							{{ $t('task.accountability.prioritization') }}
+						</XButton>
+						<XButton
+							variant="secondary"
 							icon="percent"
 							@click="setFieldActive('percentDone')"
 						>
@@ -681,6 +717,7 @@ import Heading from '@/components/tasks/partials/Heading.vue'
 import ProjectSearch from '@/components/tasks/partials/ProjectSearch.vue'
 import PercentDoneSelect from '@/components/tasks/partials/PercentDoneSelect.vue'
 import PrioritySelect from '@/components/tasks/partials/PrioritySelect.vue'
+import UrgencyImportanceSelect from '@/components/tasks/partials/UrgencyImportanceSelect.vue'
 import RelatedTasks from '@/components/tasks/partials/RelatedTasks.vue'
 import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
@@ -689,6 +726,7 @@ import CustomTransition from '@/components/misc/CustomTransition.vue'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'
 import BucketSelect from '@/components/tasks/partials/BucketSelect.vue'
 import Reactions from '@/components/input/Reactions.vue'
+import TaskAccountabilityBanner from '@/components/tasks/partials/TaskAccountabilityBanner.vue'
 
 import {uploadFile} from '@/helpers/attachments'
 import {getProjectTitle} from '@/helpers/getProjectTitle'
@@ -997,6 +1035,7 @@ type FieldType =
 	| 'repeatAfter'
 	| 'startDate'
 	| 'timeTracking'
+	| 'urgencyImportance'
 
 const activeFields: { [type in FieldType]: boolean } = reactive({
 	assignees: false,
@@ -1013,6 +1052,7 @@ const activeFields: { [type in FieldType]: boolean } = reactive({
 	repeatAfter: false,
 	startDate: false,
 	timeTracking: false,
+	urgencyImportance: false,
 })
 
 function setActiveFields() {
@@ -1033,6 +1073,7 @@ function setActiveFields() {
 	activeFields.reminders = task.value.reminders.length > 0
 	activeFields.repeatAfter = task.value.repeatAfter?.amount > 0 || task.value.repeatMode !== TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
 	activeFields.startDate = task.value.startDate !== null
+	activeFields.urgencyImportance = task.value.urgency > 0 || task.value.importance > 0
 }
 
 const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive({
@@ -1049,6 +1090,7 @@ const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive(
 	reminders: null,
 	repeatAfter: null,
 	startDate: null,
+	urgencyImportance: null,
 })
 
 function setFieldRef(name, e) {

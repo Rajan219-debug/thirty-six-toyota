@@ -59,6 +59,11 @@ func RegisterListeners() {
 	events.RegisterListener((&TaskCreatedEvent{}).Name(), &UpdateTaskInSavedFilterViews{})
 	events.RegisterListener((&TaskUpdatedEvent{}).Name(), &UpdateTaskInSavedFilterViews{})
 	events.RegisterListener((&TaskCommentCreatedEvent{}).Name(), &MarkTaskUnreadOnComment{})
+	events.RegisterListener((&TaskClosureRequestedEvent{}).Name(), &SendTaskClosureRequestedNotification{})
+	events.RegisterListener((&TaskClosureApprovedEvent{}).Name(), &SendTaskClosureApprovedNotification{})
+	events.RegisterListener((&TaskClosureRejectedEvent{}).Name(), &SendTaskClosureRejectedNotification{})
+	events.RegisterListener((&TaskClosureDisputedEvent{}).Name(), &SendTaskClosureDisputedNotification{})
+	events.RegisterListener((&TaskOverdueEvent{}).Name(), &SendTaskOverdueEscalationNotification{})
 	if config.WebhooksEnabled.GetBool() {
 		RegisterEventForWebhook(&TaskCreatedEvent{})
 		RegisterEventForWebhook(&TaskUpdatedEvent{})
@@ -1573,6 +1578,169 @@ func (s *SendTeamMemberAddedNotification) Handle(msg *message.Message) (err erro
 		Member: event.Member,
 		Doer:   event.Doer,
 		Team:   event.Team,
+	})
+}
+
+// SendTaskClosureRequestedNotification notifies the approver an assignee wants to close an overdue task
+type SendTaskClosureRequestedNotification struct {
+}
+
+// Name defines the name for the SendTaskClosureRequestedNotification listener
+func (s *SendTaskClosureRequestedNotification) Name() string {
+	return "task.closure.requested.notification.send"
+}
+
+// Handle is executed when the event TaskClosureRequestedEvent is fired
+func (s *SendTaskClosureRequestedNotification) Handle(msg *message.Message) (err error) {
+	event := &TaskClosureRequestedEvent{}
+	err = json.Unmarshal(msg.Payload, event)
+	if err != nil {
+		return err
+	}
+
+	for _, approver := range event.Approvers {
+		if approver.ID == event.Doer.ID {
+			continue
+		}
+		if err := notifications.Notify(approver, &TaskClosureRequestedNotification{
+			Doer:     event.Doer,
+			Task:     event.Task,
+			Approver: approver,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SendTaskClosureApprovedNotification notifies the assignees an overdue-closure request was approved
+type SendTaskClosureApprovedNotification struct {
+}
+
+// Name defines the name for the SendTaskClosureApprovedNotification listener
+func (s *SendTaskClosureApprovedNotification) Name() string {
+	return "task.closure.approved.notification.send"
+}
+
+// Handle is executed when the event TaskClosureApprovedEvent is fired
+func (s *SendTaskClosureApprovedNotification) Handle(msg *message.Message) (err error) {
+	event := &TaskClosureApprovedEvent{}
+	err = json.Unmarshal(msg.Payload, event)
+	if err != nil {
+		return err
+	}
+
+	for _, assignee := range event.Assignees {
+		if assignee.ID == event.Doer.ID {
+			continue
+		}
+		if err := notifications.Notify(assignee, &TaskClosureApprovedNotification{
+			Doer: event.Doer,
+			Task: event.Task,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SendTaskClosureRejectedNotification notifies the assignees an overdue-closure request was rejected
+type SendTaskClosureRejectedNotification struct {
+}
+
+// Name defines the name for the SendTaskClosureRejectedNotification listener
+func (s *SendTaskClosureRejectedNotification) Name() string {
+	return "task.closure.rejected.notification.send"
+}
+
+// Handle is executed when the event TaskClosureRejectedEvent is fired
+func (s *SendTaskClosureRejectedNotification) Handle(msg *message.Message) (err error) {
+	event := &TaskClosureRejectedEvent{}
+	err = json.Unmarshal(msg.Payload, event)
+	if err != nil {
+		return err
+	}
+
+	for _, assignee := range event.Assignees {
+		if assignee.ID == event.Doer.ID {
+			continue
+		}
+		if err := notifications.Notify(assignee, &TaskClosureRejectedNotification{
+			Doer:   event.Doer,
+			Task:   event.Task,
+			Reason: event.Reason,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SendTaskClosureDisputedNotification notifies the project owner an assignee disputed a closure rejection
+type SendTaskClosureDisputedNotification struct {
+}
+
+// Name defines the name for the SendTaskClosureDisputedNotification listener
+func (s *SendTaskClosureDisputedNotification) Name() string {
+	return "task.closure.disputed.notification.send"
+}
+
+// Handle is executed when the event TaskClosureDisputedEvent is fired
+func (s *SendTaskClosureDisputedNotification) Handle(msg *message.Message) (err error) {
+	event := &TaskClosureDisputedEvent{}
+	err = json.Unmarshal(msg.Payload, event)
+	if err != nil {
+		return err
+	}
+
+	if event.Admin == nil || event.Admin.ID == event.Doer.ID {
+		return nil
+	}
+
+	return notifications.Notify(event.Admin, &TaskClosureDisputedNotification{
+		Doer:  event.Doer,
+		Task:  event.Task,
+		Admin: event.Admin,
+	})
+}
+
+// SendTaskOverdueEscalationNotification automatically notifies a task's assigner once it goes overdue
+type SendTaskOverdueEscalationNotification struct {
+}
+
+// Name defines the name for the SendTaskOverdueEscalationNotification listener
+func (s *SendTaskOverdueEscalationNotification) Name() string {
+	return "task.overdue.escalation.notification.send"
+}
+
+// Handle is executed when the event TaskOverdueEvent is fired
+func (s *SendTaskOverdueEscalationNotification) Handle(msg *message.Message) (err error) {
+	event := &TaskOverdueEvent{}
+	err = json.Unmarshal(msg.Payload, event)
+	if err != nil {
+		return err
+	}
+
+	sess := db.NewSession()
+	defer sess.Close()
+
+	task, err := GetTaskByIDSimple(sess, event.Task.ID)
+	if err != nil {
+		return err
+	}
+
+	if task.CreatedByID == 0 || (event.User != nil && task.CreatedByID == event.User.ID) {
+		return nil
+	}
+
+	assigner, err := user.GetUserByID(sess, task.CreatedByID)
+	if err != nil {
+		return err
+	}
+
+	return notifications.Notify(assigner, &TaskOverdueEscalationNotification{
+		Task:     event.Task,
+		Assigner: assigner,
 	})
 }
 

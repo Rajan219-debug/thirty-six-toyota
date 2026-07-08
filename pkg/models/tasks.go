@@ -84,6 +84,14 @@ type Task struct {
 	RepeatMode TaskRepeatMode `xorm:"not null default 0" json:"repeat_mode" doc:"How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date."`
 	// The task priority. Can be anything you want, it is possible to sort by this later.
 	Priority int64 `xorm:"bigint null" json:"priority"`
+	// Urgency input (1-5) feeding the automatic priority score, alongside importance and deadline proximity.
+	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
+	// Importance input (1-5) feeding the automatic priority score, alongside urgency and deadline proximity.
+	Importance int64 `xorm:"bigint null default 0" json:"importance" valid:"range(0|5)" doc:"How important this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with urgency and deadline proximity."`
+	// The computed weighted priority score from urgency, importance, and deadline proximity. Not stored; recalculated on every read.
+	PriorityScore float64 `xorm:"-" json:"priority_score" readOnly:"true" doc:"The computed weighted priority score from urgency, importance, and deadline proximity. Recalculated on every read; not stored."`
+	// Which of the three auto-prioritization buckets this task falls into, based on priority_score.
+	PriorityBucket string `xorm:"-" json:"priority_bucket" readOnly:"true" doc:"Which auto-prioritization bucket this task falls into based on priority_score: do_now, do_soon, or do_later."`
 	// When this task starts.
 	StartDate time.Time `xorm:"DATETIME INDEX null 'start_date'" json:"start_date" query:"-"`
 	// When this task ends.
@@ -162,6 +170,17 @@ type Task struct {
 	// The user who initially created the task.
 	CreatedBy   *user.User `xorm:"-" json:"created_by" valid:"-" readOnly:"true" doc:"The user who created this task. Set by the server."`
 	CreatedByID int64      `xorm:"bigint not null" json:"-"` // ID of the user who put that task on the project
+
+	// Set by the server when the assignee attempts to close this task while it is overdue. Cleared once the closure is approved or rejected.
+	CompletionClaimedAt time.Time `xorm:"datetime null 'completion_claimed_at'" json:"completion_claimed_at" readOnly:"true" doc:"When the assignee attempted to close this task while it was overdue. Set by the server; cleared once the closure is approved or rejected."`
+	// The user who approved this task's closure after it went overdue. Only set for tasks completed via the overdue-closure confirmation flow.
+	ConfirmedBy *user.User `xorm:"-" json:"confirmed_by" readOnly:"true" doc:"The user who approved this task's closure after it went overdue. Only set for tasks completed via the overdue-closure confirmation flow."`
+	// ID of the user who approved an overdue closure.
+	ConfirmedByID int64 `xorm:"bigint null 'confirmed_by_id'" json:"-"`
+	// Set by the assigner when rejecting an overdue-closure request. Cleared once the assignee successfully closes the task.
+	RejectionReason string `xorm:"text null 'rejection_reason'" json:"rejection_reason" doc:"The reason the assigner gave when rejecting an overdue-closure request. Cleared once the task is eventually closed."`
+	// The computed lifecycle status of this task. Not stored; recalculated on every read from done, due_date, and the closure-confirmation fields above.
+	Status string `xorm:"-" json:"status" readOnly:"true" doc:"The task's computed lifecycle status: pending, ongoing, overdue, pending_confirmation, completed, or completed_late. Recalculated on every read; not stored."`
 
 	web.CRUDable    `xorm:"-" json:"-"`
 	web.Permissions `xorm:"-" json:"-"`
@@ -681,6 +700,9 @@ func addMoreInfoToTasks(s *xorm.Session, taskMap map[int64]*Task, a web.Auth, vi
 		if i.CreatedByID != 0 {
 			userIDs = append(userIDs, i.CreatedByID)
 		}
+		if i.ConfirmedByID != 0 {
+			userIDs = append(userIDs, i.ConfirmedByID)
+		}
 		projectIDs = append(projectIDs, i.ProjectID)
 	}
 
@@ -784,6 +806,13 @@ func addMoreInfoToTasks(s *xorm.Session, taskMap map[int64]*Task, a web.Auth, vi
 		if createdBy, has := users[task.CreatedByID]; has {
 			task.CreatedBy = createdBy
 		}
+
+		if confirmedBy, has := users[task.ConfirmedByID]; has {
+			task.ConfirmedBy = confirmedBy
+		}
+
+		task.Status = CalculateTaskStatus(task)
+		task.PriorityScore, task.PriorityBucket = CalculatePriorityScore(task.Urgency, task.Importance, task.DueDate)
 
 		// Add the reminders
 		task.Reminders = taskReminders[task.ID]
@@ -1026,6 +1055,9 @@ func createTask(s *xorm.Session, t *Task, a web.Auth, updateAssignees bool, setB
 		}
 	}
 
+	t.Status = CalculateTaskStatus(t)
+	t.PriorityScore, t.PriorityBucket = CalculatePriorityScore(t.Urgency, t.Importance, t.DueDate)
+
 	events.DispatchOnCommit(s, &TaskCreatedEvent{
 		Task: t,
 		Doer: createdBy,
@@ -1120,7 +1152,93 @@ func setTaskInBucketInViews(s *xorm.Session, t *Task, a web.Auth, setBucket bool
 // @Router /tasks/{id} [post]
 // Update updates a project task by delegating to the shared bulk helper.
 func (t *Task) Update(s *xorm.Session, a web.Auth) (err error) {
-	return t.updateSingleTask(s, a, nil)
+	claimedNow, err := t.blockOverdueSelfClosure(s, a)
+	if err != nil {
+		return err
+	}
+
+	if err := t.updateSingleTask(s, a, nil); err != nil {
+		return err
+	}
+
+	if claimedNow {
+		events.DispatchOnCommit(s, &TaskCompletionClaimedEvent{
+			Task: t,
+			Doer: doerFromAuth(s, a),
+		})
+	}
+
+	return nil
+}
+
+// isTaskOverdue reports whether an undone task's due date has already passed.
+func isTaskOverdue(t *Task) bool {
+	return !t.Done && !t.DueDate.IsZero() && t.DueDate.Before(time.Now())
+}
+
+// UserCanApproveOverdueClosure reports whether a can close an overdue task
+// directly without going through the inform/approve/reject flow: the task's
+// creator, the project's fallback approver, or a project admin.
+func UserCanApproveOverdueClosure(s *xorm.Session, ot *Task, a web.Auth) (bool, error) {
+	if ot.CreatedByID != 0 && ot.CreatedByID == a.GetID() {
+		return true, nil
+	}
+
+	p, err := GetProjectSimpleByID(s, ot.ProjectID)
+	if err != nil {
+		return false, err
+	}
+
+	if p.FallbackApproverID != 0 && p.FallbackApproverID == a.GetID() {
+		return true, nil
+	}
+
+	return p.IsAdmin(s, a)
+}
+
+// blockOverdueSelfClosure is the core accountability check: an assignee
+// cannot self-close an overdue task. If the incoming update tries to mark an
+// overdue task done and the actor isn't authorized to approve overdue
+// closures themselves, the Done flip is blocked — Done is forced back to
+// false and CompletionClaimedAt is stamped so the task moves into
+// "pending_confirmation" instead of closing, while any other field edits in
+// the same payload still go through via the caller's subsequent update.
+// If the actor IS an authorized approver, the completion is auto-confirmed.
+// Returns true if a closure claim was just recorded.
+func (t *Task) blockOverdueSelfClosure(s *xorm.Session, a web.Auth) (claimedNow bool, err error) {
+	if !t.Done {
+		return false, nil
+	}
+
+	ot, err := GetTaskByIDSimple(s, t.ID)
+	if err != nil {
+		return false, err
+	}
+
+	if !isTaskOverdue(&ot) {
+		return false, nil
+	}
+
+	canApprove, err := UserCanApproveOverdueClosure(s, &ot, a)
+	if err != nil {
+		return false, err
+	}
+
+	if canApprove {
+		if _, err := s.ID(t.ID).Cols("confirmed_by_id").Update(&Task{ConfirmedByID: a.GetID()}); err != nil {
+			return false, err
+		}
+		t.ConfirmedByID = a.GetID()
+		return false, nil
+	}
+
+	t.Done = false
+	now := time.Now()
+	if _, err := s.ID(t.ID).Cols("completion_claimed_at").Update(&Task{CompletionClaimedAt: now}); err != nil {
+		return false, err
+	}
+	t.CompletionClaimedAt = now
+	return true, nil
 }
 
 //nolint:gocyclo
@@ -1158,6 +1276,8 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		"due_date",
 		"repeat_after",
 		"priority",
+		"urgency",
+		"importance",
 		"start_date",
 		"end_date",
 		"hex_color",
@@ -1203,6 +1323,12 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		}
 		if !fieldSet["priority"] {
 			t.Priority = ot.Priority
+		}
+		if !fieldSet["urgency"] {
+			t.Urgency = ot.Urgency
+		}
+		if !fieldSet["importance"] {
+			t.Importance = ot.Importance
 		}
 		if !fieldSet["start_date"] {
 			t.StartDate = ot.StartDate
@@ -1398,6 +1524,14 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 	if t.Priority == 0 {
 		ot.Priority = 0
 	}
+	// Urgency
+	if t.Urgency == 0 {
+		ot.Urgency = 0
+	}
+	// Importance
+	if t.Importance == 0 {
+		ot.Importance = 0
+	}
 	// Description
 	if t.Description == "" {
 		ot.Description = ""
@@ -1455,6 +1589,9 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		return err
 	}
 	t.Updated = nt.Updated
+
+	t.Status = CalculateTaskStatus(t)
+	t.PriorityScore, t.PriorityBucket = CalculatePriorityScore(t.Urgency, t.Importance, t.DueDate)
 
 	events.DispatchOnCommit(s, &TaskUpdatedEvent{
 		Task: t,

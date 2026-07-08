@@ -7,7 +7,13 @@ import LabelService from './label'
 import {colorFromHex} from '@/helpers/color/colorFromHex'
 import {SECONDS_A_DAY, SECONDS_A_HOUR, SECONDS_A_WEEK} from '@/constants/date'
 import {objectToSnakeCase} from '@/helpers/case'
-import {AuthenticatedHTTPFactory} from '@/helpers/fetcher'
+import {AuthenticatedHTTPFactory, apiV2Url} from '@/helpers/fetcher'
+
+export interface IPrioritizedTasks {
+	doNow: ITask[]
+	doSoon: ITask[]
+	doLater: ITask[]
+}
 
 const parseDate = date => {
 	if (date) {
@@ -124,9 +130,72 @@ export default class TaskService extends AbstractService<ITask> {
 
 	async markTaskAsRead(taskId: ITask['id']): Promise<void> {
 		const cancel = this.setLoading()
-	
+
 		try {
 			await AuthenticatedHTTPFactory().post(`/tasks/${taskId}/read`, {} as ITask)
+		} finally {
+			cancel()
+		}
+	}
+
+	/**
+	 * Called by an assignee after their attempt to mark an overdue task done
+	 * was blocked. Notifies the task's creator (and the project's fallback
+	 * approver, if set) that a closure approval is needed.
+	 */
+	async informAssigner(taskId: ITask['id']): Promise<ITask> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/inform-assigner`))
+			return this.modelFactory(data)
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Approves an overdue task's closure. Only the creator, the project's fallback approver, or a project admin may call this. */
+	async approveClosure(taskId: ITask['id']): Promise<ITask> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/approve-closure`))
+			return this.modelFactory(data)
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Rejects an overdue task's closure with a reason. Only the creator, the project's fallback approver, or a project admin may call this. */
+	async rejectClosure(taskId: ITask['id'], reason: string): Promise<ITask> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/reject-closure`), {reason})
+			return this.modelFactory(data)
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Called by an assignee to escalate a closure rejection they disagree with to the project owner. */
+	async disputeRejection(taskId: ITask['id']): Promise<ITask> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/dispute-rejection`))
+			return this.modelFactory(data)
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Returns the current user's open assigned tasks, bucketed by priority (do_now / do_soon / do_later). */
+	async getPrioritizedTasks(): Promise<IPrioritizedTasks> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.http.get(apiV2Url('tasks/prioritized'))
+			return {
+				doNow: (data.do_now ?? []).map(t => this.modelFactory(t)),
+				doSoon: (data.do_soon ?? []).map(t => this.modelFactory(t)),
+				doLater: (data.do_later ?? []).map(t => this.modelFactory(t)),
+			}
 		} finally {
 			cancel()
 		}
