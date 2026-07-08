@@ -38,6 +38,11 @@ export default class TaskService extends AbstractService<ITask> {
 		return new TaskModel(data)
 	}
 
+	// v2 action endpoints get a raw authenticated instance: this.http's
+	// request interceptor runs processModel over every POST body, which
+	// blows up on the empty/non-task payloads these actions send.
+	private v2Http = AuthenticatedHTTPFactory()
+
 	beforeUpdate(model) {
 		return this.processModel(model)
 	}
@@ -146,7 +151,7 @@ export default class TaskService extends AbstractService<ITask> {
 	async informAssigner(taskId: ITask['id']): Promise<ITask> {
 		const cancel = this.setLoading()
 		try {
-			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/inform-assigner`))
+			const {data} = await this.v2Http.post(apiV2Url(`tasks/${taskId}/inform-assigner`))
 			return this.modelFactory(data)
 		} finally {
 			cancel()
@@ -157,7 +162,7 @@ export default class TaskService extends AbstractService<ITask> {
 	async approveClosure(taskId: ITask['id']): Promise<ITask> {
 		const cancel = this.setLoading()
 		try {
-			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/approve-closure`))
+			const {data} = await this.v2Http.post(apiV2Url(`tasks/${taskId}/approve-closure`))
 			return this.modelFactory(data)
 		} finally {
 			cancel()
@@ -168,7 +173,7 @@ export default class TaskService extends AbstractService<ITask> {
 	async rejectClosure(taskId: ITask['id'], reason: string): Promise<ITask> {
 		const cancel = this.setLoading()
 		try {
-			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/reject-closure`), {reason})
+			const {data} = await this.v2Http.post(apiV2Url(`tasks/${taskId}/reject-closure`), {reason})
 			return this.modelFactory(data)
 		} finally {
 			cancel()
@@ -179,7 +184,7 @@ export default class TaskService extends AbstractService<ITask> {
 	async disputeRejection(taskId: ITask['id']): Promise<ITask> {
 		const cancel = this.setLoading()
 		try {
-			const {data} = await this.http.post(apiV2Url(`tasks/${taskId}/dispute-rejection`))
+			const {data} = await this.v2Http.post(apiV2Url(`tasks/${taskId}/dispute-rejection`))
 			return this.modelFactory(data)
 		} finally {
 			cancel()
@@ -190,7 +195,7 @@ export default class TaskService extends AbstractService<ITask> {
 	async getPrioritizedTasks(): Promise<IPrioritizedTasks> {
 		const cancel = this.setLoading()
 		try {
-			const {data} = await this.http.get(apiV2Url('tasks/prioritized'))
+			const {data} = await this.v2Http.get(apiV2Url('tasks/prioritized'))
 			return {
 				doNow: (data.do_now ?? []).map(t => this.modelFactory(t)),
 				doSoon: (data.do_soon ?? []).map(t => this.modelFactory(t)),
