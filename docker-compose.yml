@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  vikunja:
+    image: vikunja/vikunja:latest
+    user: "0:0"
+    environment:
+      VIKUNJA_SERVICE_JWTSECRET: a-random-secret-change-me
+      VIKUNJA_SERVICE_FRONTENDURL: http://localhost:3456
+      VIKUNJA_SERVICE_PUBLICURL: http://localhost:3456
+      VIKUNJA_DATABASE_TYPE: sqlite
+      VIKUNJA_DATABASE_PATH: /db/vikunja.db
+    ports:
+      - "3456:3456"
+    volumes:
+      - vikunja-db:/db
+      - vikunja-files:/app/vikunja/files
+    restart: unless-stopped
+
+volumes:
+  vikunja-db:
+  vikunja-files:
