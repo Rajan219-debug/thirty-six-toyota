@@ -71,6 +71,7 @@ export default class TaskModel extends AbstractModel<ITask> implements ITask {
 	priority: Priority = PRIORITIES.UNSET
 	urgency = 0
 	importance = 0
+	estimatedSeconds = 0
 	priorityScore = 0
 	priorityBucket: IPriorityBucket = PRIORITY_BUCKET.DO_LATER
 	labels: ILabel[] = []

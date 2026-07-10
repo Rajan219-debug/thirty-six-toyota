@@ -1083,6 +1083,7 @@
       "done": "Done",
       "dueDate": "Due Date",
       "endDate": "End Date",
+      "estimate": "Estimated Hours",
       "labels": "Labels",
       "percentDone": "Progress",
       "priority": "Priority",
@@ -1551,7 +1552,15 @@
     "downloadCsv": "Download CSV",
     "exportCsv": "Export CSV",
     "noData": "No tracked time for this range.",
-    "noLate": "No late completions for this range."
+    "noLate": "No late completions for this range.",
+    "trend": "Late completion trends",
+    "trendWeek": "Week of {date}",
+    "departmentEstimates": "Department estimates",
+    "estimated": "Est",
+    "actual": "Act",
+    "tasks": "Tasks",
+    "estVsActual": "Est. vs actual variance",
+    "noEstimates": "No completed tasks with estimates or tracked time for this range."
   },
   "timeTracking": {
     "title": "Time tracking",

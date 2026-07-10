@@ -29,6 +29,7 @@ export interface ITask extends IAbstract {
 	priority: Priority
 	urgency: number
 	importance: number
+	estimatedSeconds: number
 	priorityScore: number
 	priorityBucket: IPriorityBucket
 	labels: ILabel[]

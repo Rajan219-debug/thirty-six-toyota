@@ -55,6 +55,10 @@ type lateCompletionReportBody struct {
 	Body *models.LateCompletionReport
 }
 
+type departmentEstimateReportBody struct {
+	Body *models.DepartmentEstimateReport
+}
+
 // RegisterReportRoutes wires the timesheet and late-completion reports (§3.7 /
 // §3.5 of the Thirty Six Toyota spec) onto the Huma API. Each is offered as JSON
 // and as a CSV download. Reports are scoped to what the caller can read, which
@@ -97,6 +101,32 @@ func RegisterReportRoutes(api huma.API) {
 		Path:        "/reports/late-completions",
 		Tags:        tags,
 	}, reportsLateCompletions)
+
+	Register(api, huma.Operation{
+		OperationID: "reports-department-estimates",
+		Summary:     "Department estimated-vs-actual report",
+		Description: "Compares estimated against tracked effort per project / department, over the tasks completed in the window (both sums cover the same task set). Scoped to the projects the caller can read.",
+		Method:      http.MethodGet,
+		Path:        "/reports/department-estimates",
+		Tags:        tags,
+	}, reportsDepartmentEstimates)
+
+	Register(api, huma.Operation{
+		OperationID: "reports-department-estimates-csv",
+		Summary:     "Department estimated-vs-actual report as CSV",
+		Description: "The same department estimates report as a downloadable CSV (department, tasks, estimated hours, actual hours).",
+		Method:      http.MethodGet,
+		Path:        "/reports/department-estimates.csv",
+		Tags:        tags,
+		Responses: map[string]*huma.Response{
+			"200": {
+				Description: "The department estimates report as CSV.",
+				Content: map[string]*huma.MediaType{
+					"text/csv": {Schema: &huma.Schema{Type: huma.TypeString}},
+				},
+			},
+		},
+	}, reportsDepartmentEstimatesCSV)
 
 	Register(api, huma.Operation{
 		OperationID: "reports-late-completions-csv",
@@ -239,6 +269,71 @@ func reportsLateCompletionsCSV(ctx context.Context, in *struct {
 				strconv.FormatInt(r.LateCount, 10),
 			})
 		}
+		cw.Flush()
+	}}, nil
+}
+
+// buildDepartmentEstimateReport runs the shared session/permission plumbing for
+// both the JSON and CSV department-estimate handlers.
+func buildDepartmentEstimateReport(a web.Auth, w reportWindow) (*models.DepartmentEstimateReport, error) {
+	s := db.NewSession()
+	defer s.Close()
+	report, err := models.GetDepartmentEstimateReport(s, a, nilIfZero(w.Start), nilIfZero(w.End))
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return report, nil
+}
+
+func reportsDepartmentEstimates(ctx context.Context, in *struct {
+	reportWindow
+}) (*departmentEstimateReportBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	report, err := buildDepartmentEstimateReport(a, in.reportWindow)
+	if err != nil {
+		return nil, err
+	}
+	return &departmentEstimateReportBody{Body: report}, nil
+}
+
+func reportsDepartmentEstimatesCSV(ctx context.Context, in *struct {
+	reportWindow
+}) (*huma.StreamResponse, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	report, err := buildDepartmentEstimateReport(a, in.reportWindow)
+	if err != nil {
+		return nil, err
+	}
+
+	return &huma.StreamResponse{Body: func(hctx huma.Context) {
+		c := humaecho5.Unwrap(hctx)
+		resp := (*c).Response()
+		resp.Header().Set("Content-Type", "text/csv")
+		resp.Header().Set("Content-Disposition", `attachment; filename="department-estimates-report.csv"`)
+		cw := csv.NewWriter(resp)
+		_ = cw.Write([]string{"project_id", "department", "tasks", "estimated_seconds", "estimated_hours", "actual_seconds", "actual_hours"})
+		for _, r := range report.Rows {
+			_ = cw.Write([]string{
+				strconv.FormatInt(r.ProjectID, 10),
+				r.ProjectTitle,
+				strconv.FormatInt(r.TaskCount, 10),
+				strconv.FormatInt(r.EstimatedSeconds, 10),
+				secondsToHours(r.EstimatedSeconds),
+				strconv.FormatInt(r.ActualSeconds, 10),
+				secondsToHours(r.ActualSeconds),
+			})
+		}
+		_ = cw.Write([]string{"", "TOTAL", "", strconv.FormatInt(report.TotalEstimated, 10), secondsToHours(report.TotalEstimated), strconv.FormatInt(report.TotalActual, 10), secondsToHours(report.TotalActual)})
 		cw.Flush()
 	}}, nil
 }

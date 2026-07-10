@@ -88,6 +88,8 @@ type Task struct {
 	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
 	// Importance input (1-5) feeding the automatic priority score, alongside urgency and deadline proximity.
 	Importance int64 `xorm:"bigint null default 0" json:"importance" valid:"range(0|5)" doc:"How important this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with urgency and deadline proximity."`
+	// Estimated effort for this task in seconds, set when planning. Compared against tracked time in the department estimates report.
+	EstimatedSeconds int64 `xorm:"bigint null default 0 'estimated_seconds'" json:"estimated_seconds" valid:"range(0|9223372036854775807)" doc:"Estimated effort in seconds. Compared against tracked time in the department estimates report."`
 	// The computed weighted priority score from urgency, importance, and deadline proximity. Not stored; recalculated on every read.
 	PriorityScore float64 `xorm:"-" json:"priority_score" readOnly:"true" doc:"The computed weighted priority score from urgency, importance, and deadline proximity. Recalculated on every read; not stored."`
 	// Which of the three auto-prioritization buckets this task falls into, based on priority_score.
@@ -1278,6 +1280,7 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		"priority",
 		"urgency",
 		"importance",
+		"estimated_seconds",
 		"start_date",
 		"end_date",
 		"hex_color",
@@ -1329,6 +1332,9 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		}
 		if !fieldSet["importance"] {
 			t.Importance = ot.Importance
+		}
+		if !fieldSet["estimated_seconds"] {
+			t.EstimatedSeconds = ot.EstimatedSeconds
 		}
 		if !fieldSet["start_date"] {
 			t.StartDate = ot.StartDate

@@ -49,3 +49,43 @@ func TestEntryDuration(t *testing.T) {
 		assert.Equal(t, int64(1), entryDuration(start, &end))
 	})
 }
+
+func TestWeekStart(t *testing.T) {
+	monday := time.Date(2026, 7, 6, 0, 0, 0, 0, time.UTC)
+
+	t.Run("mid-week day maps to its Monday", func(t *testing.T) {
+		assert.Equal(t, monday, weekStart(time.Date(2026, 7, 9, 15, 30, 0, 0, time.UTC)))
+	})
+
+	t.Run("Sunday belongs to the week begun the previous Monday", func(t *testing.T) {
+		assert.Equal(t, monday, weekStart(time.Date(2026, 7, 12, 23, 59, 59, 0, time.UTC)))
+	})
+
+	t.Run("a Monday is its own week start", func(t *testing.T) {
+		assert.Equal(t, monday, weekStart(monday))
+	})
+}
+
+func TestWeeklyTrend(t *testing.T) {
+	week := func(offset int) time.Time {
+		return time.Date(2026, 6, 22, 0, 0, 0, 0, time.UTC).AddDate(0, 0, offset*7)
+	}
+
+	t.Run("empty input gives an empty series", func(t *testing.T) {
+		assert.Empty(t, weeklyTrend(map[time.Time]int64{}))
+	})
+
+	t.Run("gaps between buckets are filled with zero weeks", func(t *testing.T) {
+		got := weeklyTrend(map[time.Time]int64{week(0): 2, week(2): 1})
+		assert.Equal(t, []*LateCompletionWeek{
+			{WeekStart: week(0), Count: 2},
+			{WeekStart: week(1), Count: 0},
+			{WeekStart: week(2), Count: 1},
+		}, got)
+	})
+
+	t.Run("a single week stays a single bucket", func(t *testing.T) {
+		got := weeklyTrend(map[time.Time]int64{week(1): 3})
+		assert.Equal(t, []*LateCompletionWeek{{WeekStart: week(1), Count: 3}}, got)
+	})
+}

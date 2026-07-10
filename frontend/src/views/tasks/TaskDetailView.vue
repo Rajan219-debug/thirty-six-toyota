@@ -150,6 +150,31 @@
 							appear
 						>
 							<div
+								v-if="activeFields.estimate"
+								class="column"
+							>
+								<!-- Estimated hours -->
+								<div class="detail-title">
+									<Icon :icon="['far', 'clock']" />
+									{{ $t('task.attributes.estimate') }}
+								</div>
+								<input
+									:ref="e => setFieldRef('estimate', e)"
+									v-model.number="estimatedHours"
+									class="input"
+									type="number"
+									min="0"
+									step="0.25"
+									:disabled="!canWrite"
+									@change="saveTask()"
+								>
+							</div>
+						</CustomTransition>
+						<CustomTransition
+							name="flash-background"
+							appear
+						>
+							<div
 								v-if="activeFields.dueDate"
 								class="column"
 							>
@@ -519,6 +544,13 @@
 							@click="setFieldActive('urgencyImportance')"
 						>
 							{{ $t('task.accountability.prioritization') }}
+						</XButton>
+						<XButton
+							variant="secondary"
+							:icon="['far', 'clock']"
+							@click="setFieldActive('estimate')"
+						>
+							{{ $t('task.attributes.estimate') }}
 						</XButton>
 						<XButton
 							variant="secondary"
@@ -1026,6 +1058,7 @@ type FieldType =
 	| 'color'
 	| 'dueDate'
 	| 'endDate'
+	| 'estimate'
 	| 'labels'
 	| 'moveProject'
 	| 'percentDone'
@@ -1043,6 +1076,7 @@ const activeFields: { [type in FieldType]: boolean } = reactive({
 	color: false,
 	dueDate: false,
 	endDate: false,
+	estimate: false,
 	labels: false,
 	moveProject: false,
 	percentDone: false,
@@ -1074,7 +1108,16 @@ function setActiveFields() {
 	activeFields.repeatAfter = task.value.repeatAfter?.amount > 0 || task.value.repeatMode !== TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
 	activeFields.startDate = task.value.startDate !== null
 	activeFields.urgencyImportance = task.value.urgency > 0 || task.value.importance > 0
+	activeFields.estimate = task.value.estimatedSeconds > 0
 }
+
+// The estimate is stored in seconds but entered as hours.
+const estimatedHours = computed({
+	get: () => task.value.estimatedSeconds / 3600,
+	set: (hours: number) => {
+		task.value.estimatedSeconds = Math.round((hours || 0) * 3600)
+	},
+})
 
 const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive({
 	assignees: null,
@@ -1082,6 +1125,7 @@ const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive(
 	color: null,
 	dueDate: null,
 	endDate: null,
+	estimate: null,
 	labels: null,
 	moveProject: null,
 	percentDone: null,

@@ -70,6 +70,18 @@
 					<Icon icon="exclamation" />
 				</span>
 			</div>
+			<div class="stat-tile">
+				<div class="stat-tile__body">
+					<span class="stat-tile__label">{{ $t('reports.estVsActual') }}</span>
+					<span
+						class="stat-tile__value"
+						:class="{'is-over': variancePercent !== null && variancePercent > 0}"
+					>{{ variancePercent === null ? '—' : formatVariance(variancePercent) }}</span>
+				</div>
+				<span class="stat-tile__icon">
+					<Icon icon="chart-line" />
+				</span>
+			</div>
 		</div>
 
 		<div
@@ -164,32 +176,127 @@
 				>
 					{{ $t('reports.noLate') }}
 				</p>
+				<template v-else>
+					<div
+						v-if="lateCompletions.weeks.length > 1"
+						class="trend-chart"
+						role="img"
+						:aria-label="$t('reports.trend')"
+					>
+						<div
+							v-for="w in lateCompletions.weeks"
+							:key="w.weekStart"
+							class="trend-chart__col"
+							:title="`${$t('reports.trendWeek', {date: weekLabel(w.weekStart)})}: ${w.count}`"
+						>
+							<span class="trend-chart__count">{{ w.count }}</span>
+							<span class="trend-chart__track">
+								<span
+									class="trend-chart__bar"
+									:style="{blockSize: `${Math.max(4, w.count / maxWeekCount * 100)}%`}"
+								/>
+							</span>
+							<span class="trend-chart__label">{{ weekLabel(w.weekStart) }}</span>
+						</div>
+					</div>
+					<table class="reports-table">
+						<thead>
+							<tr>
+								<th>{{ $t('reports.employee') }}</th>
+								<th class="is-num">
+									{{ $t('reports.lateCount') }}
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr
+								v-for="row in lateCompletions.rows"
+								:key="row.userId"
+							>
+								<td>
+									<span class="reports-avatar">{{ initials(row.name || row.username) }}</span>
+									{{ row.name || row.username }}
+								</td>
+								<td class="is-num">
+									<span class="reports-badge">{{ row.lateCount }}</span>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</template>
+			</section>
+
+			<section class="card reports-section">
+				<div class="reports-section__head">
+					<h2 class="reports-section__title">
+						<span class="reports-section__dot" />
+						{{ $t('reports.departmentEstimates') }}
+					</h2>
+					<XButton
+						variant="secondary"
+						icon="download"
+						:disabled="deptEstimates.rows.length === 0"
+						@click="downloadDeptEstimates"
+					>
+						{{ $t('reports.downloadCsv') }}
+					</XButton>
+				</div>
+				<p
+					v-if="deptEstimates.rows.length === 0"
+					class="reports-empty"
+				>
+					{{ $t('reports.noEstimates') }}
+				</p>
 				<table
 					v-else
 					class="reports-table"
 				>
 					<thead>
 						<tr>
-							<th>{{ $t('reports.employee') }}</th>
+							<th>{{ $t('reports.department') }}</th>
 							<th class="is-num">
-								{{ $t('reports.lateCount') }}
+								{{ $t('reports.tasks') }}
+							</th>
+							<th class="is-num">
+								{{ $t('reports.estimated') }}
+							</th>
+							<th class="is-num">
+								{{ $t('reports.actual') }}
 							</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr
-							v-for="row in lateCompletions.rows"
-							:key="row.userId"
+							v-for="row in deptEstimates.rows"
+							:key="row.projectId"
 						>
-							<td>
-								<span class="reports-avatar">{{ initials(row.name || row.username) }}</span>
-								{{ row.name || row.username }}
+							<td>{{ row.projectTitle }}</td>
+							<td class="is-num">
+								{{ row.taskCount }}
 							</td>
 							<td class="is-num">
-								<span class="reports-badge">{{ row.lateCount }}</span>
+								{{ formatDuration(row.estimatedSeconds) }}
+							</td>
+							<td
+								class="is-num is-strong"
+								:class="{'is-over': row.estimatedSeconds > 0 && row.actualSeconds > row.estimatedSeconds}"
+							>
+								{{ formatDuration(row.actualSeconds) }}
 							</td>
 						</tr>
 					</tbody>
+					<tfoot>
+						<tr>
+							<th>{{ $t('reports.total') }}</th>
+							<th class="is-num" />
+							<th class="is-num is-strong">
+								{{ formatDuration(deptEstimates.totalEstimated) }}
+							</th>
+							<th class="is-num is-strong">
+								{{ formatDuration(deptEstimates.totalActual) }}
+							</th>
+						</tr>
+					</tfoot>
 				</table>
 			</section>
 		</template>
@@ -201,7 +308,7 @@ import {ref, computed, watch, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 import ProjectSearch from '@/components/tasks/partials/ProjectSearch.vue'
-import TaskService, {type ITimesheetReport, type ILateCompletionReport, type IReportFilter} from '@/services/task'
+import TaskService, {type ITimesheetReport, type ILateCompletionReport, type IDepartmentEstimateReport, type IReportFilter} from '@/services/task'
 import {useTitle} from '@/composables/useTitle'
 import {useBaseStore} from '@/stores/base'
 
@@ -219,7 +326,8 @@ const selectedProject = ref<IProject | null>(null)
 
 const loading = ref(true)
 const timesheet = ref<ITimesheetReport>({rows: [], totalSeconds: 0})
-const lateCompletions = ref<ILateCompletionReport>({rows: [], total: 0})
+const lateCompletions = ref<ILateCompletionReport>({rows: [], weeks: [], total: 0})
+const deptEstimates = ref<IDepartmentEstimateReport>({rows: [], totalEstimated: 0, totalActual: 0})
 
 // A date input is a day; make `end` inclusive of that whole day.
 const filter = computed<IReportFilter>(() => ({
@@ -231,9 +339,10 @@ const filter = computed<IReportFilter>(() => ({
 async function load() {
 	loading.value = true
 	try {
-		[timesheet.value, lateCompletions.value] = await Promise.all([
+		[timesheet.value, lateCompletions.value, deptEstimates.value] = await Promise.all([
 			taskService.getTimesheetReport(filter.value),
 			taskService.getLateCompletionReport({start: filter.value.start, end: filter.value.end}),
+			taskService.getDepartmentEstimateReport({start: filter.value.start, end: filter.value.end}),
 		])
 	} finally {
 		loading.value = false
@@ -249,6 +358,30 @@ function downloadLate() {
 		start: filter.value.start,
 		end: filter.value.end,
 	})
+}
+
+function downloadDeptEstimates() {
+	return taskService.downloadReportCsv('reports/department-estimates.csv', 'department-estimates-report.csv', {
+		start: filter.value.start,
+		end: filter.value.end,
+	})
+}
+
+// Actual over/under estimate, as a signed percentage; null when nothing was estimated.
+const variancePercent = computed<number | null>(() => {
+	const {totalEstimated, totalActual} = deptEstimates.value
+	if (totalEstimated === 0) return null
+	return (totalActual - totalEstimated) / totalEstimated * 100
+})
+
+function formatVariance(percent: number): string {
+	return `${percent > 0 ? '+' : ''}${percent.toFixed(1)}%`
+}
+
+const maxWeekCount = computed(() => Math.max(1, ...lateCompletions.value.weeks.map(w => w.count)))
+
+function weekLabel(weekStart: string): string {
+	return new Date(weekStart).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})
 }
 
 // Whole hours and minutes, e.g. "2h 30m" (or "0m" when empty).
@@ -514,6 +647,67 @@ onMounted(() => {
 	font-size: .72rem;
 	font-weight: 700;
 	vertical-align: middle;
+}
+
+.is-over {
+	color: var(--danger);
+}
+
+.trend-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: .75rem;
+	block-size: 140px;
+	padding: .5rem .25rem 0;
+	margin-block-end: 1.25rem;
+	border-block-end: 1px solid var(--card-border-color);
+
+	&__col {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-end;
+		gap: .25rem;
+		block-size: 100%;
+		min-inline-size: 0;
+	}
+
+	&__count {
+		font-size: .72rem;
+		font-weight: 700;
+		color: var(--grey-500);
+		font-variant-numeric: tabular-nums;
+	}
+
+	&__track {
+		flex: 1;
+		inline-size: 100%;
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		min-block-size: 0;
+	}
+
+	&__bar {
+		display: block;
+		inline-size: 100%;
+		max-inline-size: 3rem;
+		background: var(--danger);
+		border-radius: 4px 4px 0 0;
+		opacity: .85;
+		transition: opacity .15s ease;
+
+		.trend-chart__col:hover & {
+			opacity: 1;
+		}
+	}
+
+	&__label {
+		font-size: .68rem;
+		color: var(--grey-500);
+		white-space: nowrap;
+	}
 }
 
 .reports-badge {

@@ -35,9 +35,29 @@ export interface ILateCompletionReportRow {
 	lateCount: number
 }
 
+export interface ILateCompletionWeek {
+	weekStart: string
+	count: number
+}
+
 export interface ILateCompletionReport {
 	rows: ILateCompletionReportRow[]
+	weeks: ILateCompletionWeek[]
 	total: number
+}
+
+export interface IDepartmentEstimateRow {
+	projectId: number
+	projectTitle: string
+	taskCount: number
+	estimatedSeconds: number
+	actualSeconds: number
+}
+
+export interface IDepartmentEstimateReport {
+	rows: IDepartmentEstimateRow[]
+	totalEstimated: number
+	totalActual: number
 }
 
 export interface IReportFilter {
@@ -343,6 +363,31 @@ export default class TaskService extends AbstractService<ITask> {
 					name: r.name,
 					lateCount: r.late_count,
 				})),
+				weeks: (data.weeks ?? []).map(w => ({
+					weekStart: w.week_start,
+					count: w.count,
+				})),
+			}
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Department estimates report: estimated vs tracked effort per project / department. */
+	async getDepartmentEstimateReport(filter: IReportFilter = {}): Promise<IDepartmentEstimateReport> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.v2Http.get(apiV2Url('reports/department-estimates'), {params: this.reportParams(filter)})
+			return {
+				totalEstimated: data.total_estimated ?? 0,
+				totalActual: data.total_actual ?? 0,
+				rows: (data.rows ?? []).map(r => ({
+					projectId: r.project_id,
+					projectTitle: r.project_title,
+					taskCount: r.task_count,
+					estimatedSeconds: r.estimated_seconds,
+					actualSeconds: r.actual_seconds,
+				})),
 			}
 		} finally {
 			cancel()
@@ -350,7 +395,7 @@ export default class TaskService extends AbstractService<ITask> {
 	}
 
 	/** Fetches a report CSV (with auth) and triggers a browser download. */
-	async downloadReportCsv(path: 'reports/timesheet.csv' | 'reports/late-completions.csv', filename: string, filter: IReportFilter = {}) {
+	async downloadReportCsv(path: 'reports/timesheet.csv' | 'reports/late-completions.csv' | 'reports/department-estimates.csv', filename: string, filter: IReportFilter = {}) {
 		const cancel = this.setLoading()
 		try {
 			const {data} = await this.v2Http.get(apiV2Url(path), {params: this.reportParams(filter), responseType: 'blob'})
