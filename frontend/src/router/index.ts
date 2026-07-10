@@ -48,6 +48,14 @@ const router = createRouter({
 			component: () => import('@/views/Home.vue'),
 		},
 		{
+			path: '/dashboard',
+			name: 'dashboard',
+			component: () => import('@/views/DashboardView.vue'),
+			meta: {
+				title: 'navigation.dashboard',
+			},
+		},
+		{
 			path: '/:pathMatch(.*)*',
 			name: 'not-found',
 			component: NotFoundComponent,
@@ -229,6 +237,11 @@ const router = createRouter({
 			path: '/tasks/prioritized',
 			name: 'tasks.prioritized',
 			component: () => import('@/views/tasks/PrioritizedTasksView.vue'),
+		},
+		{
+			path: '/reports',
+			name: 'reports',
+			component: () => import('@/views/reports/ReportsView.vue'),
 		},
 		{
 			// Redirect old list routes to the respective project routes

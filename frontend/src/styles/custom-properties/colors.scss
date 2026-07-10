@@ -235,10 +235,10 @@
   --danger-a: 1;
   --danger: hsla(var(--danger-h), var(--danger-s), var(--danger-l), var(--danger-a));
 
-  // var(--primary) / $blue is #1973ff
-  --primary-h: 217deg;
-  --primary-s: 98%;
-  --primary-l: 53%;
+  // var(--primary) is Thirty Six Toyota red #EB0A1E
+  --primary-h: 354deg;
+  --primary-s: 92%;
+  --primary-l: 48%;
   --primary-a: 1;
   --primary-hsl: var(--primary-h), var(--primary-s), var(--primary-l);
   --primary: hsla(var(--primary-h), var(--primary-s), var(--primary-l), var(--primary-a));
@@ -257,7 +257,7 @@
 
   // Define custom color variable to allow change in dark mode
   --card-border-color: var(--grey-200);
-  --logo-text-color: hsl(180, 1%, 15%);
+  --logo-text-color: #1a1a1a;
 
   // Code colors
   --code-variable: #da2222;

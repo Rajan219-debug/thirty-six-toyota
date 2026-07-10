@@ -13,9 +13,12 @@
 				<Message v-if="motd !== ''">
 					{{ motd }}
 				</Message>
-				<h2 class="image-title">
-					{{ $t("misc.welcomeBack") }}
-				</h2>
+				<div>
+					<span class="image-kicker">THIRTY SIX TOYOTA · OPERATIONS</span>
+					<h2 class="image-title">
+						{{ $t("misc.welcomeBack") }}
+					</h2>
+				</div>
 			</section>
 			<main
 				id="main-content"
@@ -83,8 +86,7 @@ useTitle(() => title.value)
 
 <style lang="scss" scoped>
 .no-auth-wrapper {
-	background: var(--site-background) url("@/assets/llama.svg?url") no-repeat
-		fixed bottom left;
+	background: var(--site-background);
 	min-block-size: 100vh;
 	display: flex;
 	flex-direction: column;
@@ -121,27 +123,23 @@ useTitle(() => title.value)
 	}
 
 	@media screen and (min-width: $tablet) {
-		background: url("@/assets/no-auth-image.jpg") no-repeat bottom/cover;
+		// Toyota navy panel per DESIGN.md, red accent bar
+		background: linear-gradient(160deg, #0a2540 0%, #001529 60%);
+		border-inline-end: 4px solid var(--primary);
 		position: relative;
 
 		&.has-message {
 			justify-content: space-between;
 		}
-
-		&::before {
-			content: "";
-			position: absolute;
-			inset-block-start: 0;
-			inset-inline-start: 0;
-			inset-inline-end: 0;
-			inset-block-end: 0;
-			background-color: rgba(0, 0, 0, 0.2);
-		}
-
-		> * {
-			position: relative;
-		}
 	}
+}
+
+.image-kicker {
+	font-family: $tst-mono-font;
+	font-size: .7rem;
+	font-weight: 500;
+	letter-spacing: .13em;
+	color: hsla(0, 0%, 100%, .55);
 }
 
 .content {

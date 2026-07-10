@@ -11,6 +11,8 @@ docker-manifest.tmpl
 docker-manifest-unstable.tmpl
 *.db
 *.zip
+*.exe
+.git/
 
 # Frontend
 /frontend/node_modules/

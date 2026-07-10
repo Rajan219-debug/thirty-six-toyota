@@ -38,13 +38,13 @@
 </template>
 
 <script setup lang="ts">
-const LEVELS = [0, 1, 2, 3, 4, 5]
-
 withDefaults(defineProps<{
 	disabled?: boolean
 }>(), {
 	disabled: false,
 })
+
+const LEVELS = [0, 1, 2, 3, 4, 5]
 
 const urgency = defineModel<number>('urgency', {
 	required: true,

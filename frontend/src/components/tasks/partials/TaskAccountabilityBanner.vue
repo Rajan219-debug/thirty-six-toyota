@@ -12,16 +12,42 @@
 
 		<div
 			v-if="task.status === TASK_STATUS.PENDING_CONFIRMATION && isAssignee"
-			class="notification is-warning"
+			class="tst-closure"
 		>
-			<p>{{ $t('task.accountability.claimedNotice', {assigner: assignerName}) }}</p>
-			<XButton
-				:loading="loading"
-				variant="primary"
-				@click="informAssigner"
-			>
-				{{ $t('task.accountability.informAssigner', {assigner: assignerName}) }}
-			</XButton>
+			<div class="tst-closure__head">
+				<Icon icon="exclamation" />
+				<span>{{ $t('task.accountability.closureHeader') }}</span>
+			</div>
+			<div class="tst-closure__restriction">
+				<Icon :icon="['far', 'clock']" />
+				<div>
+					<span class="tst-closure__restriction-label">{{ $t('task.accountability.statusRestriction') }}</span>
+					<p>{{ $t('task.accountability.closureRestricted') }}</p>
+				</div>
+			</div>
+			<p class="tst-closure__instructions">
+				{{ $t('task.accountability.claimedNotice', {assigner: assignerName}) }}
+			</p>
+			<label class="tst-closure__check">
+				<input
+					v-model="informChecked"
+					type="checkbox"
+				>
+				<span>
+					<span class="tst-closure__check-label">{{ $t('task.accountability.informAssigner', {assigner: assignerName}) }}</span>
+					<span class="tst-closure__check-note">{{ $t('task.accountability.auditNote') }}</span>
+				</span>
+			</label>
+			<div class="tst-closure__foot">
+				<XButton
+					:loading="loading"
+					:disabled="!informChecked"
+					variant="primary"
+					@click="informAssigner"
+				>
+					{{ $t('task.accountability.requestClosureApproval') }}
+				</XButton>
+			</div>
 		</div>
 
 		<div
@@ -123,6 +149,7 @@ const taskService = new TaskService()
 const loading = ref(false)
 const showRejectModal = ref(false)
 const rejectReason = ref('')
+const informChecked = ref(false)
 
 const currentUserId = computed(() => authStore.info?.id)
 
@@ -202,6 +229,8 @@ async function dispute() {
 </script>
 
 <style lang="scss" scoped>
+$tst-red: #eb0a1e;
+
 .task-accountability-banner {
 	.notification {
 		margin-block-end: 1rem;
@@ -209,6 +238,100 @@ async function dispute() {
 		.buttons {
 			margin-block-start: .5rem;
 		}
+	}
+}
+
+.tst-closure {
+	margin-block-end: 1rem;
+	border: 1px solid var(--grey-200);
+	border-radius: 8px;
+	background: #ffffff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+	overflow: hidden;
+
+	&__head {
+		display: flex;
+		align-items: center;
+		gap: .6rem;
+		padding: .9rem 1.25rem;
+		background: var(--grey-50);
+		border-block-end: 1px solid var(--grey-200);
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: $tst-red;
+	}
+
+	&__restriction {
+		display: flex;
+		align-items: flex-start;
+		gap: .6rem;
+		margin: 1.25rem 1.25rem 0;
+		padding: .75rem;
+		border-radius: 4px;
+		background: #fffbeb;
+		border: 1px solid #fcd34d;
+		color: #b45309;
+
+		p {
+			margin: 0;
+			font-size: .85rem;
+			color: #92400e;
+		}
+	}
+
+	&__restriction-label {
+		display: block;
+		font-size: .68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: .04em;
+		margin-block-end: .15rem;
+	}
+
+	&__instructions {
+		padding: 1.1rem 1.25rem 0;
+		margin: 0;
+		font-size: .9rem;
+		color: var(--grey-800);
+	}
+
+	&__check {
+		display: flex;
+		align-items: flex-start;
+		gap: .75rem;
+		margin: 1rem 1.25rem;
+		padding: 1rem;
+		border-radius: 4px;
+		background: var(--grey-50);
+		border: 1px solid var(--grey-200);
+		cursor: pointer;
+
+		input {
+			margin-block-start: .2rem;
+			inline-size: 1.1rem;
+			block-size: 1.1rem;
+			accent-color: $tst-red;
+			flex-shrink: 0;
+		}
+	}
+
+	&__check-label {
+		display: block;
+		font-weight: 600;
+		color: var(--grey-900);
+	}
+
+	&__check-note {
+		display: block;
+		font-size: .78rem;
+		color: var(--grey-500);
+		margin-block-start: .2rem;
+	}
+
+	&__foot {
+		display: flex;
+		justify-content: flex-end;
+		padding: 0 1.25rem 1.25rem;
 	}
 }
 </style>

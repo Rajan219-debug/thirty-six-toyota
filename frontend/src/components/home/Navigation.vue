@@ -4,38 +4,27 @@
 		class="menu-container"
 		:style="{'--sidebar-width': sidebarWidth}"
 	>
+		<div class="tst-profile">
+			<span class="tst-profile__avatar">
+				<Icon icon="user" />
+			</span>
+			<div class="tst-profile__meta">
+				<span class="tst-profile__name">{{ authStore.userDisplayName || 'Toyota Staff' }}</span>
+				<span class="tst-profile__role">Management Portal</span>
+			</div>
+		</div>
+
 		<nav class="menu top-menu">
-			<RouterLink
-				:to="{name: 'home'}"
-				class="logo"
-				:aria-label="$t('navigation.home')"
-			>
-				<Logo
-					width="164"
-					height="48"
-				/>
-			</RouterLink>
 			<menu class="menu-list other-menu-items">
 				<li>
 					<RouterLink
 						v-shortcut="'KeyG KeyO'"
-						:to="{ name: 'home'}"
+						:to="{ name: 'dashboard'}"
 					>
 						<span class="menu-item-icon icon">
-							<Icon icon="calendar" />
+							<Icon icon="tachometer-alt" />
 						</span>
-						{{ $t('navigation.overview') }}
-					</RouterLink>
-				</li>
-				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyU'"
-						:to="{ name: 'tasks.range'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon :icon="['far', 'calendar-alt']" />
-						</span>
-						{{ $t('navigation.upcoming') }}
+						{{ $t('navigation.dashboard') }}
 					</RouterLink>
 				</li>
 				<li>
@@ -43,9 +32,20 @@
 						:to="{ name: 'tasks.prioritized'}"
 					>
 						<span class="menu-item-icon icon">
-							<Icon icon="chart-line" />
+							<Icon icon="list-check" />
 						</span>
-						{{ $t('navigation.prioritized') }}
+						{{ $t('navigation.myTasks') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink
+						v-shortcut="'KeyG KeyM'"
+						:to="{ name: 'teams.index'}"
+					>
+						<span class="menu-item-icon icon">
+							<Icon icon="users" />
+						</span>
+						{{ $t('navigation.teamView') }}
 					</RouterLink>
 				</li>
 				<li>
@@ -60,33 +60,19 @@
 					</RouterLink>
 				</li>
 				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyA'"
-						:to="{ name: 'labels.index'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon icon="tags" />
-						</span>
-						{{ $t('label.title') }}
-					</RouterLink>
-				</li>
-				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyM'"
-						:to="{ name: 'teams.index'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon icon="users" />
-						</span>
-						{{ $t('team.title') }}
-					</RouterLink>
-				</li>
-				<li v-if="timeTrackingEnabled">
 					<RouterLink :to="{ name: 'time-tracking'}">
 						<span class="menu-item-icon icon">
 							<Icon :icon="['far', 'clock']" />
 						</span>
 						{{ $t('timeTracking.title') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink :to="{ name: 'reports'}">
+						<span class="menu-item-icon icon">
+							<Icon icon="chart-bar" />
+						</span>
+						{{ $t('reports.title') }}
 					</RouterLink>
 				</li>
 			</menu>
@@ -128,10 +114,16 @@
 			</nav>
 		</template>
 
-		<PoweredByLink
-			class="mbs-auto"
-			utm-medium="navigation"
-		/>
+		<div class="tst-create-wrap mbs-auto">
+			<RouterLink
+				v-if="createTaskTarget"
+				:to="createTaskTarget"
+				class="tst-create-btn"
+			>
+				<Icon icon="plus" />
+				{{ $t('navigation.createTask') }}
+			</RouterLink>
+		</div>
 
 		<div
 			v-if="!isMobile"
@@ -145,25 +137,31 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 
-import PoweredByLink from '@/components/home/PoweredByLink.vue'
-import Logo from '@/components/home/Logo.vue'
 import Loading from '@/components/misc/Loading.vue'
 
 import {useBaseStore} from '@/stores/base'
 import {useProjectStore} from '@/stores/projects'
-import {useConfigStore} from '@/stores/config'
-import {PRO_FEATURE} from '@/constants/proFeatures'
+import {useAuthStore} from '@/stores/auth'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import type {IProject} from '@/modelTypes/IProject'
 import {useSidebarResize} from '@/composables/useSidebarResize'
 
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
-const configStore = useConfigStore()
-
-const timeTrackingEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING))
+const authStore = useAuthStore()
 
 const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
+
+// "Create Task" jumps to the user's default project (or first available), where the
+// inline add-task input lives — Vikunja has no standalone global task-create screen.
+// ponytail: routes to the list view; a true global quick-add modal is a later add.
+const createTaskTarget = computed(() => {
+	const defaultId = authStore.settings?.defaultProjectId
+	const projectId = defaultId || projectStore.notArchivedRootProjects[0]?.id
+	return projectId
+		? {name: 'project.index', params: {projectId}}
+		: {name: 'projects.index'}
+})
 
 // Cast readonly arrays to mutable type - the arrays are not actually mutated by the component
 const projects = computed(() => projectStore.notArchivedRootProjects as IProject[])
@@ -172,26 +170,18 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 </script>
 
 <style lang="scss" scoped>
-.logo {
-	display: block;
-
-	padding-inline-start: 1rem;
-	margin-inline-end: 1rem;
-	margin-block-end: 1rem;
-
-	@media screen and (min-width: $tablet) {
-		display: none;
-	}
-}
+// Thirty Six Toyota sidebar — deep navy shell, white text, red active state.
+$tst-navy: #001529;
+$tst-red: #eb0a1e;
 
 .menu-container {
 	--sidebar-width: #{$navbar-width};
 
 	display: flex;
 	flex-direction: column;
-	background: var(--site-background);
-	color: $vikunja-nav-color;
-	padding: 1rem 0;
+	background: $tst-navy;
+	color: rgba(255, 255, 255, .82);
+	padding: 1rem 0 1.25rem;
 	transition: transform $transition-duration ease-in;
 	position: fixed;
 	inset-block-start: $navbar-height;
@@ -221,6 +211,124 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 	}
 }
 
+.tst-profile {
+	display: flex;
+	align-items: center;
+	gap: .75rem;
+	padding: .25rem 1.5rem 1.25rem;
+	margin-block-end: .75rem;
+	border-block-end: 1px solid rgba(255, 255, 255, .1);
+
+	&__avatar {
+		display: grid;
+		place-items: center;
+		inline-size: 2.5rem;
+		block-size: 2.5rem;
+		border-radius: 999px;
+		background: rgba(255, 255, 255, .12);
+		color: #ffffff;
+		font-size: 1.1rem;
+		flex-shrink: 0;
+	}
+
+	&__meta {
+		display: flex;
+		flex-direction: column;
+		min-inline-size: 0;
+	}
+
+	&__name {
+		font-weight: 700;
+		font-size: 1rem;
+		color: #ffffff;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	&__role {
+		font-size: .8rem;
+		color: rgba(255, 255, 255, .6);
+	}
+}
+
+.top-menu .menu-list {
+	li {
+		font-weight: 600;
+		font-family: $vikunja-font;
+	}
+
+	.list-menu-link,
+	li > a {
+		display: flex;
+		align-items: center;
+		gap: .85rem;
+		padding: .6rem 1.5rem;
+		color: rgba(255, 255, 255, .82);
+		border-inline-start: 3px solid transparent;
+		transition: background-color .15s ease, color .15s ease;
+
+		.menu-item-icon {
+			opacity: .85;
+		}
+
+		&:hover {
+			color: #ffffff;
+			background: rgba(255, 255, 255, .08);
+		}
+
+		&.router-link-active {
+			color: $tst-red;
+			font-weight: 700;
+			background: rgba(235, 10, 30, .1);
+			border-inline-start-color: $tst-red;
+
+			.menu-item-icon {
+				opacity: 1;
+			}
+		}
+	}
+}
+
+// Project / favorites tree below the main menu — lighten for the navy background.
+.menu + .menu {
+	padding-block-start: math.div($navbar-padding, 2);
+}
+
+:deep(.menu-label),
+:deep(.menu-list a) {
+	color: rgba(255, 255, 255, .7);
+}
+
+:deep(.menu-list a:hover) {
+	color: #ffffff;
+	background: rgba(255, 255, 255, .08);
+}
+
+.tst-create-wrap {
+	padding: 1rem 1.25rem .25rem;
+}
+
+.tst-create-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: .5rem;
+	inline-size: 100%;
+	padding: .6rem 1rem;
+	border-radius: 4px;
+	background: $tst-red;
+	color: #ffffff;
+	font-weight: 700;
+	font-size: .95rem;
+	transition: background-color .15s ease;
+
+	&:hover {
+		background: #c00014;
+		color: #ffffff;
+	}
+}
+
 .resize-handle {
 	position: absolute;
 	inset-block-start: 0;
@@ -236,26 +344,5 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 	&:active {
 		background-color: var(--primary);
 	}
-}
-
-.top-menu .menu-list {
-	li {
-		font-weight: 600;
-		font-family: $vikunja-font;
-	}
-
-	.list-menu-link,
-	li > a {
-		padding-inline-start: 2rem;
-		display: inline-block;
-
-		.icon {
-			padding-block-end: .25rem;
-		}
-	}
-}
-
-.menu + .menu {
-	padding-block-start: math.div($navbar-padding, 2);
 }
 </style>

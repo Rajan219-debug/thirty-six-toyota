@@ -1,28 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useNow } from '@vueuse/core'
-import { useAuthStore } from '@/stores/auth'
-import { useConfigStore } from '@/stores/config'
 import { useColorScheme } from '@/composables/useColorScheme'
 
-import LogoFull from '@/assets/logo-full.svg?component'
-import LogoFullPride from '@/assets/logo-full-pride.svg?component'
-import {MILLISECONDS_A_HOUR} from '@/constants/date'
-
-const now = useNow({
-	interval: MILLISECONDS_A_HOUR,
-})
-
-const authStore = useAuthStore()
-const configStore = useConfigStore()
 const { isDark } = useColorScheme()
 
-const Logo = computed(() => configStore.allowIconChanges
-	&& authStore.settings.frontendSettings.allowIconChanges
-	&& now.value.getMonth() === 5
-	? LogoFullPride
-	: LogoFull)
-
+// Deployment-level logo override (window.CUSTOM_LOGO_URL) still wins when set.
 const CustomLogo = computed(() => {
 	const lightLogo = window.CUSTOM_LOGO_URL
 	const darkLogo = window.CUSTOM_LOGO_URL_DARK
@@ -37,17 +19,23 @@ const CustomLogo = computed(() => {
 
 <template>
 	<div>
-		<Logo
-			v-if="!CustomLogo"
-			alt="Vikunja"
-			class="logo"
-		/>
 		<img
-			v-show="CustomLogo"
+			v-if="CustomLogo"
 			:src="CustomLogo"
-			alt="Vikunja"
+			alt="Thirty Six Toyota"
 			class="logo"
 		>
+		<div
+			v-else
+			class="brand"
+			aria-label="Thirty Six Toyota"
+		>
+			<span class="brand__badge">36</span>
+			<span class="brand__word">
+				<span class="brand__line">THIRTY SIX</span>
+				<span class="brand__line brand__line--accent">TOYOTA</span>
+			</span>
+		</div>
 	</div>
 </template>
 
@@ -56,5 +44,44 @@ const CustomLogo = computed(() => {
 	color: var(--logo-text-color);
 	max-inline-size: 168px;
 	max-block-size: 48px;
+}
+
+.brand {
+	display: inline-flex;
+	align-items: center;
+	gap: .55rem;
+	block-size: 48px;
+	user-select: none;
+}
+
+.brand__badge {
+	display: grid;
+	place-items: center;
+	inline-size: 40px;
+	block-size: 40px;
+	border-radius: 9px;
+	background: var(--primary);
+	color: #ffffff;
+	font-weight: 800;
+	font-size: 1.2rem;
+	letter-spacing: -.02em;
+	box-shadow: 0 2px 6px hsla(var(--primary-hsl), .35);
+}
+
+.brand__word {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.05;
+	color: var(--logo-text-color);
+}
+
+.brand__line {
+	font-weight: 700;
+	font-size: .82rem;
+	letter-spacing: .13em;
+}
+
+.brand__line--accent {
+	color: var(--primary);
 }
 </style>

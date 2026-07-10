@@ -1,0 +1,65 @@
+# Isolated Docker stack for the Thirty Six Toyota Vikunja fork.
+#
+# `name:` sets the Compose project, so the volumes/network below are namespaced
+# (thirtysixtoyota_*) and never merge with other Compose projects or the
+# `vikunja-verify-pg` test container. Postgres is internal-only (no host port),
+# so it can't clash with anything on the host either.
+#
+#   cd docker/thirtysixtoyota
+#   docker compose up -d --build      # first run builds the fork image
+#   open http://localhost:3456        # register the first user = instance admin
+name: thirtysixtoyota
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: t36-vikunja-db
+    environment:
+      POSTGRES_USER: vikunja
+      POSTGRES_PASSWORD: vikunja
+      POSTGRES_DB: vikunja
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks: [t36]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vikunja -d vikunja"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  vikunja:
+    build:
+      context: ../..
+      dockerfile: docker/thirtysixtoyota/Dockerfile
+    image: thirtysixtoyota/vikunja:dev
+    container_name: t36-vikunja
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      VIKUNJA_DATABASE_TYPE: postgres
+      VIKUNJA_DATABASE_HOST: db
+      VIKUNJA_DATABASE_USER: vikunja
+      VIKUNJA_DATABASE_PASSWORD: vikunja
+      VIKUNJA_DATABASE_DATABASE: vikunja
+      # Change this before exposing the instance to anyone.
+      VIKUNJA_SERVICE_JWTSECRET: change-me-thirtysixtoyota-dev-secret
+      VIKUNJA_SERVICE_PUBLICURL: http://localhost:3457/
+      VIKUNJA_SERVICE_FRONTENDURL: http://localhost:3457/
+      VIKUNJA_FILES_BASEPATH: /app/vikunja/files
+    ports:
+      # Host 3457 so this fork coexists with any other Vikunja already on 3456.
+      - "3457:3456"
+    volumes:
+      - files:/app/vikunja/files
+    networks: [t36]
+    restart: unless-stopped
+
+volumes:
+  db:
+  files:
+
+networks:
+  t36:
+    name: thirtysixtoyota-net

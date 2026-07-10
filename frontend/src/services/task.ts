@@ -15,6 +15,73 @@ export interface IPrioritizedTasks {
 	doLater: ITask[]
 }
 
+export interface ITimesheetReportRow {
+	userId: number
+	username: string
+	name: string
+	entryCount: number
+	totalSeconds: number
+}
+
+export interface ITimesheetReport {
+	rows: ITimesheetReportRow[]
+	totalSeconds: number
+}
+
+export interface ILateCompletionReportRow {
+	userId: number
+	username: string
+	name: string
+	lateCount: number
+}
+
+export interface ILateCompletionReport {
+	rows: ILateCompletionReportRow[]
+	total: number
+}
+
+export interface IReportFilter {
+	start?: string
+	end?: string
+	userId?: number
+	projectId?: number
+}
+
+export interface IDashboardEfficiencyRow {
+	userId: number
+	username: string
+	name: string
+	completed: number
+	onTime: number
+	efficiency: number
+}
+
+export interface IDashboardAllocationRow {
+	projectId: number
+	name: string
+	openCount: number
+	percent: number
+}
+
+export interface IDashboardTaskRow {
+	id: number
+	title: string
+	project: string
+	assignee: string
+	status: string
+}
+
+export interface IDashboardStats {
+	totalOpen: number
+	overdue: number
+	pendingConfirmation: number
+	completed: number
+	completionRate: number
+	leaderboard: IDashboardEfficiencyRow[]
+	allocation: IDashboardAllocationRow[]
+	attentionTasks: IDashboardTaskRow[]
+}
+
 const parseDate = date => {
 	if (date) {
 		return new Date(date).toISOString()
@@ -201,6 +268,98 @@ export default class TaskService extends AbstractService<ITask> {
 				doSoon: (data.do_soon ?? []).map(t => this.modelFactory(t)),
 				doLater: (data.do_later ?? []).map(t => this.modelFactory(t)),
 			}
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Manager dashboard aggregate stats, scoped to the projects the caller can read. */
+	async getDashboardStats(): Promise<IDashboardStats> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.v2Http.get(apiV2Url('dashboard/stats'))
+			return {
+				totalOpen: data.total_open ?? 0,
+				overdue: data.overdue ?? 0,
+				pendingConfirmation: data.pending_confirmation ?? 0,
+				completed: data.completed ?? 0,
+				completionRate: data.completion_rate ?? 0,
+				leaderboard: (data.leaderboard ?? []).map(r => ({
+					userId: r.user_id, username: r.username, name: r.name,
+					completed: r.completed, onTime: r.on_time, efficiency: r.efficiency,
+				})),
+				allocation: (data.allocation ?? []).map(r => ({
+					projectId: r.project_id, name: r.name, openCount: r.open_count, percent: r.percent,
+				})),
+				attentionTasks: (data.attention_tasks ?? []).map(r => ({
+					id: r.id, title: r.title, project: r.project, assignee: r.assignee, status: r.status,
+				})),
+			}
+		} finally {
+			cancel()
+		}
+	}
+
+	// Snake-case query params the report endpoints expect, dropping empties.
+	private reportParams(filter: IReportFilter = {}) {
+		const params: Record<string, string> = {}
+		if (filter.start) params.start = new Date(filter.start).toISOString()
+		if (filter.end) params.end = new Date(filter.end).toISOString()
+		if (filter.userId) params.user_id = String(filter.userId)
+		if (filter.projectId) params.project_id = String(filter.projectId)
+		return params
+	}
+
+	/** Timesheet report: tracked time per employee, scoped to what the caller can read. */
+	async getTimesheetReport(filter: IReportFilter = {}): Promise<ITimesheetReport> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.v2Http.get(apiV2Url('reports/timesheet'), {params: this.reportParams(filter)})
+			return {
+				totalSeconds: data.total_seconds ?? 0,
+				rows: (data.rows ?? []).map(r => ({
+					userId: r.user_id,
+					username: r.username,
+					name: r.name,
+					entryCount: r.entry_count,
+					totalSeconds: r.total_seconds,
+				})),
+			}
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Late-completion report: per-employee count of tasks closed late (§3.5 performance metric). */
+	async getLateCompletionReport(filter: IReportFilter = {}): Promise<ILateCompletionReport> {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.v2Http.get(apiV2Url('reports/late-completions'), {params: this.reportParams(filter)})
+			return {
+				total: data.total ?? 0,
+				rows: (data.rows ?? []).map(r => ({
+					userId: r.user_id,
+					username: r.username,
+					name: r.name,
+					lateCount: r.late_count,
+				})),
+			}
+		} finally {
+			cancel()
+		}
+	}
+
+	/** Fetches a report CSV (with auth) and triggers a browser download. */
+	async downloadReportCsv(path: 'reports/timesheet.csv' | 'reports/late-completions.csv', filename: string, filter: IReportFilter = {}) {
+		const cancel = this.setLoading()
+		try {
+			const {data} = await this.v2Http.get(apiV2Url(path), {params: this.reportParams(filter), responseType: 'blob'})
+			const url = window.URL.createObjectURL(new Blob([data], {type: 'text/csv'}))
+			const a = document.createElement('a')
+			a.href = url
+			a.download = filename
+			a.click()
+			window.URL.revokeObjectURL(url)
 		} finally {
 			cancel()
 		}

@@ -266,12 +266,14 @@ func CurrentInfo() Info {
 // EnabledProFeatures returns enabled features (empty slice in free mode); Feature values marshal to their JSON string key.
 func EnabledProFeatures() []Feature {
 	st := loadState()
+	// ponytail: time tracking is always advertised as enabled in this fork so the
+	// frontend shows the timer/timesheet UI (see IsFeatureEnabled).
+	out := []Feature{FeatureTimeTracking}
 	if !st.Licensed {
-		return []Feature{}
+		return out
 	}
-	out := make([]Feature, 0, len(st.Features))
 	for f, on := range st.Features {
-		if !on {
+		if !on || f == FeatureTimeTracking {
 			continue
 		}
 		out = append(out, f)
@@ -284,6 +286,12 @@ func EnabledProFeatures() []Feature {
 
 // IsFeatureEnabled returns whether a specific licensed feature is enabled.
 func IsFeatureEnabled(feature Feature) bool {
+	// ponytail: time tracking is ungated in this Thirty Six Toyota fork (internal,
+	// self-hosted). Timesheets/reporting depend on it; upstream gates it behind a
+	// paid license. Flip this one branch back if the fork ever takes a real license.
+	if feature == FeatureTimeTracking {
+		return true
+	}
 	st := loadState()
 	if !st.Licensed {
 		return false
