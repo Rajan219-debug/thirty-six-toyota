@@ -1,0 +1,37 @@
+.shell-view {
+	padding: 1.5rem;
+	max-inline-size: 1100px;
+	margin-inline: auto;
+}
+
+.shell-header {
+	margin-block-end: 1.5rem;
+}
+
+.shell-title {
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: var(--grey-900);
+	margin: 0;
+}
+
+.shell-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: .75rem;
+	padding: 4rem 1rem;
+	color: var(--grey-400);
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: 12px;
+
+	&__icon {
+		color: var(--grey-300);
+
+		:deep(svg) {
+			inline-size: 2.5rem;
+			block-size: 2.5rem;
+		}
+	}
+}
