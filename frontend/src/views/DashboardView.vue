@@ -19,7 +19,7 @@
 		</header>
 
 		<div class="tst-stats">
-			<div class="tst-stat">
+			<div class="tst-stat tst-stat--info">
 				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.openTasks') }}</span>
 					<span class="tst-stat__icon"><Icon icon="list-check" /></span>
@@ -33,14 +33,14 @@
 				</div>
 				<span class="tst-stat__value tst-stat__value--danger">{{ Math.round(overdueCount) }}</span>
 			</div>
-			<div class="tst-stat">
+			<div class="tst-stat tst-stat--success">
 				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.completionRate') }}</span>
 					<span class="tst-stat__icon"><Icon icon="chart-line" /></span>
 				</div>
 				<span class="tst-stat__value">{{ rateCount.toFixed(1) }}<span class="tst-stat__unit">%</span></span>
 			</div>
-			<div class="tst-stat">
+			<div class="tst-stat tst-stat--warning">
 				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.pendingConfirmations') }}</span>
 					<span class="tst-stat__icon"><Icon :icon="['far', 'clock']" /></span>
@@ -297,7 +297,12 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// KPI accent palette — Toyota-suitable: red anchors the brand, navy/green/
+// amber carry the semantics (info / positive / waiting).
 $tst-red: #eb0a1e;
+$tst-navy: #1b4f8a;
+$tst-green: #1a8a4f;
+$tst-amber: #c8860a;
 
 @keyframes tst-rise {
 	from { opacity: 0; transform: translateY(14px); }
@@ -391,6 +396,10 @@ $tst-red: #eb0a1e;
 }
 
 .tst-stat {
+	// Per-card accent — the ribbon and icon tile both read these.
+	--accent: var(--primary);
+	--accent-soft: hsla(var(--primary-hsl), .10);
+
 	position: relative;
 	overflow: hidden;
 	display: flex;
@@ -404,15 +413,14 @@ $tst-red: #eb0a1e;
 	transition: transform .18s ease, box-shadow .18s ease;
 	animation: tst-rise .5s ease backwards;
 
-	// hairline brand accent along the top edge
+	// colored accent ribbon along the top edge
 	&::after {
 		content: '';
 		position: absolute;
 		inset-block-start: 0;
 		inset-inline: 0;
-		block-size: 2px;
-		background: var(--primary);
-		opacity: .8;
+		block-size: 3px;
+		background: var(--accent);
 		z-index: 2;
 	}
 
@@ -426,11 +434,15 @@ $tst-red: #eb0a1e;
 		box-shadow: 0 8px 20px rgba(0, 0, 0, .07);
 	}
 
+	&--info    { --accent: #{$tst-navy};  --accent-soft: rgba(27, 79, 138, .10); }
+	&--success { --accent: #{$tst-green}; --accent-soft: rgba(26, 138, 79, .10); }
+	&--warning { --accent: #{$tst-amber}; --accent-soft: rgba(200, 134, 10, .10); }
+
 	&--danger {
+		--accent: #{$tst-red};
+		--accent-soft: rgba(235, 10, 30, .10);
 		border-inline-start: 4px solid $tst-red;
 		background: rgba(235, 10, 30, .04);
-
-		&::after { background: $tst-red; }
 	}
 
 	&__head {
@@ -478,15 +490,10 @@ $tst-red: #eb0a1e;
 		inline-size: 2.25rem;
 		block-size: 2.25rem;
 		border-radius: 8px;
-		background: hsla(var(--primary-hsl), .10);
-		color: var(--primary);
+		background: var(--accent-soft);
+		color: var(--accent);
 		font-size: 1rem;
 		flex-shrink: 0;
-
-		&--danger {
-			background: rgba(235, 10, 30, .10);
-			color: $tst-red;
-		}
 	}
 }
 
