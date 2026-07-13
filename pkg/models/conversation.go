@@ -1,0 +1,198 @@
+// Vikunja is a to-do list application to facilitate your life.
+// Copyright 2018-present Vikunja and contributors. All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package models
+
+import (
+	"time"
+
+	"code.vikunja.io/api/pkg/user"
+	"code.vikunja.io/api/pkg/web"
+	"xorm.io/xorm"
+)
+
+// Conversation is a chat between two or more users (Discussion feature).
+// ponytail: membership is fixed at creation — no add/remove-member endpoint.
+// Add one if group chats need to grow after creation.
+type Conversation struct {
+	// The unique, numeric id of this conversation.
+	ID int64 `xorm:"bigint autoincr not null unique pk" json:"id" param:"conversation" readOnly:"true" doc:"The unique, numeric id of this conversation."`
+	// The conversation's title. Only used for group chats — 1:1 chats are titled after the other member on the frontend.
+	Title string `xorm:"varchar(250) null" json:"title" maxLength:"250" doc:"The conversation's title. Only used for group chats — 1:1 chats are titled after the other member on the frontend."`
+	// Whether this is a group chat (3+ members) or a 1:1 direct message.
+	IsGroup bool `xorm:"bool not null default false" json:"is_group" doc:"Whether this is a group chat (3+ members) or a 1:1 direct message."`
+
+	// The ids of the other members to start this conversation with. Write-only — used on create.
+	MemberIDs []int64 `xorm:"-" json:"member_ids"`
+	// The full member list of this conversation, including the creator.
+	Members []*user.User `xorm:"-" json:"members" readOnly:"true" doc:"The full member list of this conversation, including the creator."`
+	// The most recent message in this conversation, if any.
+	LastMessage *ChatMessage `xorm:"-" json:"last_message" readOnly:"true" doc:"The most recent message in this conversation, if any."`
+
+	CreatedByID int64 `xorm:"bigint not null" json:"-"`
+	// The user who started this conversation.
+	CreatedBy *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The user who started this conversation."`
+
+	// A timestamp when this conversation was created. You cannot change this value.
+	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"A timestamp when this conversation was created. You cannot change this value."`
+	// A timestamp when this conversation was last updated (e.g. a new message). You cannot change this value.
+	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"A timestamp when this conversation was last updated (e.g. a new message). You cannot change this value."`
+
+	web.CRUDable    `xorm:"-" json:"-"`
+	web.Permissions `xorm:"-" json:"-"`
+}
+
+// TableName returns the table name for conversations
+func (*Conversation) TableName() string {
+	return "conversations"
+}
+
+// Create creates a new conversation with the caller plus every id in MemberIDs as members.
+func (c *Conversation) Create(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return
+	}
+
+	memberIDs := uniqueInt64s(c.MemberIDs)
+	if len(memberIDs) == 0 {
+		return ErrConversationNeedsMembers{}
+	}
+
+	c.ID = 0
+	c.CreatedBy = u
+	c.CreatedByID = u.ID
+	if len(memberIDs) > 1 {
+		c.IsGroup = true
+	}
+
+	if _, err = s.Insert(c); err != nil {
+		return
+	}
+
+	allMemberIDs := append([]int64{u.ID}, memberIDs...)
+	for _, memberID := range allMemberIDs {
+		member := &ConversationMember{ConversationID: c.ID, UserID: memberID}
+		if _, err = s.Insert(member); err != nil {
+			return
+		}
+	}
+
+	return c.ReadOne(s, a)
+}
+
+// ReadOne returns a single conversation the caller is a member of.
+func (c *Conversation) ReadOne(s *xorm.Session, a web.Auth) (err error) {
+	exists, err := s.Where("id = ?", c.ID).Get(c)
+	if err != nil {
+		return
+	}
+	if !exists {
+		return ErrConversationDoesNotExist{ConversationID: c.ID}
+	}
+
+	if err = c.loadMembers(s); err != nil {
+		return
+	}
+	c.CreatedBy, err = user.GetUserByID(s, c.CreatedByID)
+	if err != nil {
+		return
+	}
+	c.LastMessage, err = getLastMessage(s, c.ID)
+	return
+}
+
+// ReadAll returns every conversation the caller is a member of, newest activity first.
+func (c *Conversation) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, perPage int) (result interface{}, resultCount int, numberOfTotalItems int64, err error) {
+	if _, is := a.(*LinkSharing); is {
+		return []*Conversation{}, 0, 0, nil
+	}
+
+	conversationIDs := []int64{}
+	err = s.Table("conversation_members").
+		Where("user_id = ?", a.GetID()).
+		Cols("conversation_id").
+		Find(&conversationIDs)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if len(conversationIDs) == 0 {
+		return []*Conversation{}, 0, 0, nil
+	}
+
+	conversations := []*Conversation{}
+	limit, start := getLimitFromPageIndex(page, perPage)
+	query := s.In("id", conversationIDs).Desc("updated")
+	if limit > 0 {
+		query = query.Limit(limit, start)
+	}
+	if err = query.Find(&conversations); err != nil {
+		return nil, 0, 0, err
+	}
+
+	for _, conv := range conversations {
+		if err = conv.loadMembers(s); err != nil {
+			return nil, 0, 0, err
+		}
+		conv.CreatedBy, err = user.GetUserByID(s, conv.CreatedByID)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		conv.LastMessage, err = getLastMessage(s, conv.ID)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+	}
+
+	numberOfTotalItems, err = s.In("id", conversationIDs).Count(&Conversation{})
+	return conversations, len(conversations), numberOfTotalItems, err
+}
+
+func (c *Conversation) loadMembers(s *xorm.Session) error {
+	memberIDs := []int64{}
+	if err := s.Table("conversation_members").
+		Where("conversation_id = ?", c.ID).
+		Cols("user_id").
+		Find(&memberIDs); err != nil {
+		return err
+	}
+
+	users, err := getUsersOrLinkSharesFromIDs(s, memberIDs)
+	if err != nil {
+		return err
+	}
+
+	c.Members = make([]*user.User, 0, len(memberIDs))
+	for _, id := range memberIDs {
+		if u, has := users[id]; has {
+			c.Members = append(c.Members, u)
+		}
+	}
+	return nil
+}
+
+func uniqueInt64s(in []int64) []int64 {
+	seen := make(map[int64]bool, len(in))
+	out := make([]int64, 0, len(in))
+	for _, v := range in {
+		if v == 0 || seen[v] {
+			continue
+		}
+		seen[v] = true
+		out = append(out, v)
+	}
+	return out
+}

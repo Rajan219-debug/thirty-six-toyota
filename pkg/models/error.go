@@ -2653,3 +2653,115 @@ func (err ErrUserDataExportDoesNotExist) HTTPError() web.HTTPError {
 		Message:  "No user data export found.",
 	}
 }
+
+// Documents errors
+// =================
+
+// ErrFolderDoesNotExist represents an error where a document folder does not exist.
+type ErrFolderDoesNotExist struct {
+	FolderID int64
+}
+
+// IsErrFolderDoesNotExist checks if an error is ErrFolderDoesNotExist.
+func IsErrFolderDoesNotExist(err error) bool {
+	_, ok := err.(ErrFolderDoesNotExist)
+	return ok
+}
+
+func (err ErrFolderDoesNotExist) Error() string {
+	return fmt.Sprintf("Folder does not exist [FolderID: %v]", err.FolderID)
+}
+
+// ErrCodeFolderDoesNotExist holds the unique world-error code of this error
+const ErrCodeFolderDoesNotExist = 20001
+
+// HTTPError holds the http error description
+func (err ErrFolderDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeFolderDoesNotExist,
+		Message:  "This folder does not exist.",
+	}
+}
+
+// ErrDocumentDoesNotExist represents an error where a document does not exist.
+type ErrDocumentDoesNotExist struct {
+	DocumentID int64
+}
+
+// IsErrDocumentDoesNotExist checks if an error is ErrDocumentDoesNotExist.
+func IsErrDocumentDoesNotExist(err error) bool {
+	_, ok := err.(ErrDocumentDoesNotExist)
+	return ok
+}
+
+func (err ErrDocumentDoesNotExist) Error() string {
+	return fmt.Sprintf("Document does not exist [DocumentID: %v]", err.DocumentID)
+}
+
+// ErrCodeDocumentDoesNotExist holds the unique world-error code of this error
+const ErrCodeDocumentDoesNotExist = 20002
+
+// HTTPError holds the http error description
+func (err ErrDocumentDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeDocumentDoesNotExist,
+		Message:  "This document does not exist.",
+	}
+}
+
+// Discussion errors
+// =================
+
+// ErrConversationDoesNotExist represents an error where a conversation does not exist.
+type ErrConversationDoesNotExist struct {
+	ConversationID int64
+}
+
+// IsErrConversationDoesNotExist checks if an error is ErrConversationDoesNotExist.
+func IsErrConversationDoesNotExist(err error) bool {
+	_, ok := err.(ErrConversationDoesNotExist)
+	return ok
+}
+
+func (err ErrConversationDoesNotExist) Error() string {
+	return fmt.Sprintf("Conversation does not exist [ConversationID: %v]", err.ConversationID)
+}
+
+// ErrCodeConversationDoesNotExist holds the unique world-error code of this error
+const ErrCodeConversationDoesNotExist = 21001
+
+// HTTPError holds the http error description
+func (err ErrConversationDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeConversationDoesNotExist,
+		Message:  "This conversation does not exist.",
+	}
+}
+
+// ErrConversationNeedsMembers represents an error where a conversation is created without any members.
+type ErrConversationNeedsMembers struct{}
+
+// IsErrConversationNeedsMembers checks if an error is ErrConversationNeedsMembers.
+func IsErrConversationNeedsMembers(err error) bool {
+	_, ok := err.(ErrConversationNeedsMembers)
+	return ok
+}
+
+func (err ErrConversationNeedsMembers) Error() string {
+	return "Conversation needs at least one other member"
+}
+
+// ErrCodeConversationNeedsMembers holds the unique world-error code of this error
+const ErrCodeConversationNeedsMembers = 21002
+
+// HTTPError holds the http error description
+func (err ErrConversationNeedsMembers) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeConversationNeedsMembers,
+		Message:  "A conversation needs at least one other member.",
+	}
+}
