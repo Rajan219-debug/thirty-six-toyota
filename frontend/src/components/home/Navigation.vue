@@ -317,6 +317,22 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 	}
 }
 
+// Colored nav icons — a distinct accent per section for quick scanning.
+// Icons keep the inherited dim-when-inactive / full-when-active opacity, so
+// the colors stay soft rather than neon. Text is left neutral for legibility.
+.other-menu-items > li {
+	&:nth-child(1) .menu-item-icon { color: var(--primary); } // Dashboard
+	&:nth-child(2) .menu-item-icon { color: #6366f1; }        // My Tasks
+	&:nth-child(3) .menu-item-icon { color: #14b8a6; }        // Projects
+	&:nth-child(4) .menu-item-icon { color: #22c55e; }        // Discussion
+	&:nth-child(5) .menu-item-icon { color: #f59e0b; }        // Documents
+	&:nth-child(6) .menu-item-icon { color: #f97316; }        // Time tracking
+	&:nth-child(7) .menu-item-icon { color: #eab308; }        // Notes
+	&:nth-child(8) .menu-item-icon { color: #a855f7; }        // Reports
+	&:nth-child(9) .menu-item-icon { color: #ec4899; }        // Users
+	&:nth-child(10) .menu-item-icon { color: #ef4444; }       // Departments
+}
+
 // Project / favorites tree below the main menu.
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
