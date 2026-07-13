@@ -17,28 +17,28 @@
 					<span class="tst-stat__label">{{ $t('dashboard.openTasks') }}</span>
 					<span class="tst-stat__icon"><Icon icon="list-check" /></span>
 				</div>
-				<span class="tst-stat__value">{{ stats.totalOpen }}</span>
+				<span class="tst-stat__value">{{ Math.round(openCount) }}</span>
 			</div>
 			<div class="tst-stat tst-stat--danger">
 				<div class="tst-stat__head">
 					<span class="tst-stat__label tst-stat__label--danger">{{ $t('dashboard.overdue') }}</span>
 					<span class="tst-stat__icon tst-stat__icon--danger"><Icon icon="exclamation" /></span>
 				</div>
-				<span class="tst-stat__value tst-stat__value--danger">{{ stats.overdue }}</span>
+				<span class="tst-stat__value tst-stat__value--danger">{{ Math.round(overdueCount) }}</span>
 			</div>
 			<div class="tst-stat">
 				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.completionRate') }}</span>
 					<span class="tst-stat__icon"><Icon icon="chart-line" /></span>
 				</div>
-				<span class="tst-stat__value">{{ stats.completionRate }}<span class="tst-stat__unit">%</span></span>
+				<span class="tst-stat__value">{{ rateCount.toFixed(1) }}<span class="tst-stat__unit">%</span></span>
 			</div>
 			<div class="tst-stat">
 				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.pendingConfirmations') }}</span>
 					<span class="tst-stat__icon"><Icon :icon="['far', 'clock']" /></span>
 				</div>
-				<span class="tst-stat__value">{{ stats.pendingConfirmation }}</span>
+				<span class="tst-stat__value">{{ Math.round(pendingCount) }}</span>
 			</div>
 		</div>
 
@@ -207,6 +207,7 @@ import {useRouter} from 'vue-router'
 
 import TaskService, {type IDashboardStats} from '@/services/task'
 import {useTitle} from '@/composables/useTitle'
+import {useCountUp} from '@/composables/useCountUp'
 import {useBaseStore} from '@/stores/base'
 import {TASK_STATUS} from '@/types/ITaskStatus'
 
@@ -228,6 +229,12 @@ const stats = ref<IDashboardStats>({
 	totalOpen: 0, overdue: 0, pendingConfirmation: 0, completed: 0,
 	completionRate: 0, leaderboard: [], allocation: [], attentionTasks: [],
 })
+
+// Animated KPI counters — tick up from 0 when the stats land.
+const openCount = useCountUp(() => stats.value.totalOpen)
+const overdueCount = useCountUp(() => stats.value.overdue)
+const rateCount = useCountUp(() => stats.value.completionRate)
+const pendingCount = useCountUp(() => stats.value.pendingConfirmation)
 
 function initials(name: string): string {
 	return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase() ?? '').join('')
@@ -272,6 +279,11 @@ onMounted(async () => {
 <style lang="scss" scoped>
 $tst-red: #eb0a1e;
 
+@keyframes tst-rise {
+	from { opacity: 0; transform: translateY(14px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
 .tst-dash {
 	padding: 1.5rem;
 	max-inline-size: 1440px;
@@ -312,6 +324,18 @@ $tst-red: #eb0a1e;
 	border: 1px solid var(--grey-200);
 	border-radius: 12px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, .03);
+	transition: transform .18s ease, box-shadow .18s ease;
+	animation: tst-rise .5s ease backwards;
+
+	&:nth-child(1) { animation-delay: .04s; }
+	&:nth-child(2) { animation-delay: .10s; }
+	&:nth-child(3) { animation-delay: .16s; }
+	&:nth-child(4) { animation-delay: .22s; }
+
+	&:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 12px 26px rgba(0, 0, 0, .09);
+	}
 
 	&--danger {
 		border-inline-start: 4px solid $tst-red;
@@ -356,17 +380,19 @@ $tst-red: #eb0a1e;
 	&__icon {
 		display: grid;
 		place-items: center;
-		inline-size: 2rem;
-		block-size: 2rem;
-		border-radius: 6px;
-		background: var(--grey-100);
-		color: var(--grey-500);
+		inline-size: 2.25rem;
+		block-size: 2.25rem;
+		border-radius: 8px;
+		background: linear-gradient(135deg, hsla(var(--primary-hsl), .18), hsla(var(--primary-hsl), .06));
+		color: var(--primary);
 		font-size: 1rem;
 		flex-shrink: 0;
+		box-shadow: 0 4px 10px hsla(var(--primary-hsl), .18);
 
 		&--danger {
-			background: rgba(235, 10, 30, .12);
+			background: linear-gradient(135deg, rgba(235, 10, 30, .18), rgba(235, 10, 30, .06));
 			color: $tst-red;
+			box-shadow: 0 4px 10px rgba(235, 10, 30, .18);
 		}
 	}
 }
@@ -395,6 +421,14 @@ $tst-red: #eb0a1e;
 	border-radius: 12px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, .03);
 	overflow: hidden;
+	transition: transform .18s ease, box-shadow .18s ease;
+	animation: tst-rise .55s ease backwards;
+	animation-delay: .12s;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 12px 26px rgba(0, 0, 0, .08);
+	}
 
 	&__head {
 		display: flex;
@@ -625,6 +659,20 @@ $tst-red: #eb0a1e;
 		font-family: $tst-mono-font;
 		font-size: .7rem;
 		color: var(--grey-600);
+	}
+}
+
+// Respect users who ask for less motion — no entrance animations, no lifts.
+@media (prefers-reduced-motion: reduce) {
+	.tst-stat,
+	.tst-panel {
+		animation: none;
+		transition: none;
+	}
+
+	.tst-stat:hover,
+	.tst-panel:hover {
+		transform: none;
 	}
 }
 </style>
