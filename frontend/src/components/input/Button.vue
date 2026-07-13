@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import BaseButton from '@/components/base/BaseButton.vue'
-import type {IconProp} from '@fortawesome/fontawesome-svg-core'
+import type {IconName} from '@/components/misc/Icon'
 
 const props = defineProps<ButtonProps>()
 
@@ -53,7 +53,7 @@ export type ButtonTypes = keyof typeof VARIANT_CLASS_MAP
 
 export interface ButtonProps {
 	variant?: ButtonTypes
-	icon?: IconProp
+	icon?: IconName
 	iconColor?: string
 	loading?: boolean
 	disabled?: boolean
@@ -64,7 +64,6 @@ export interface ButtonProps {
 
 defineOptions({name: 'XButton'})
 
-// @ts-expect-error - Complex union type from IconProp causes TS2590, but the code is correct
 const variant = computed(() => (props.variant ?? 'primary') as ButtonTypes)
 const shadow = computed(() => (props.shadow ?? true) as boolean)
 const wrap = computed(() => (props.wrap ?? true) as boolean)

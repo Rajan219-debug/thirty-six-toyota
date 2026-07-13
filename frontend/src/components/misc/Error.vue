@@ -7,9 +7,6 @@
 			<ButtonLink @click="reload">
 				{{ $t('loadingError.tryAgain') }}
 			</ButtonLink>
-			<ButtonLink href="https://vikunja.io/contact/">
-				{{ $t('loadingError.contact') }}
-			</ButtonLink>
 		</i18n-t>
 	</Message>
 </template>

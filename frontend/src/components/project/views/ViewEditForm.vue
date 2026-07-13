@@ -343,6 +343,7 @@ label.radio {
 
 	input {
 		cursor: pointer;
+		accent-color: var(--primary);
 	}
 
 	&:hover {

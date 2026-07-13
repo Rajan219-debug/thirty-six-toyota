@@ -1,5 +1,5 @@
 import {computed, watch, readonly} from 'vue'
-import {createSharedComposable, tryOnMounted} from '@vueuse/core'
+import {createSharedComposable, tryOnMounted, usePreferredColorScheme} from '@vueuse/core'
 import {useAuthStore} from '@/stores/auth'
 
 const CLASS_DARK = 'dark'
@@ -11,14 +11,16 @@ const CLASS_LIGHT = 'light'
 // - doesn't allow setting via the `isDark` ref.
 // - instead the store is exposed
 // - value is synced via `createSharedComposable`
-// https://github.com/vueuse/vueuse/blob/main/packages/core/useDark/index.ts 
+// https://github.com/vueuse/vueuse/blob/main/packages/core/useDark/index.ts
 export const useColorScheme = createSharedComposable(() => {
 	const authStore = useAuthStore()
 	const store = computed(() => authStore.settings.frontendSettings.colorSchema)
+	const preferredColorScheme = usePreferredColorScheme()
 
 	const isDark = computed<boolean>(() => {
-		// The Thirty Six Toyota theme is light-only, so 'auto' means light here
-		// instead of following the OS preference; explicit 'dark' still works.
+		if (store.value === 'auto') {
+			return preferredColorScheme.value === 'dark'
+		}
 		return store.value === 'dark'
 	})
 

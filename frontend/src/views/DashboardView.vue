@@ -13,32 +13,32 @@
 
 		<div class="tst-stats">
 			<div class="tst-stat">
-				<div class="tst-stat__body">
+				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.openTasks') }}</span>
-					<span class="tst-stat__value">{{ stats.totalOpen }}</span>
+					<span class="tst-stat__icon"><Icon icon="list-check" /></span>
 				</div>
-				<span class="tst-stat__icon"><Icon icon="list-check" /></span>
+				<span class="tst-stat__value">{{ stats.totalOpen }}</span>
 			</div>
 			<div class="tst-stat tst-stat--danger">
-				<div class="tst-stat__body">
+				<div class="tst-stat__head">
 					<span class="tst-stat__label tst-stat__label--danger">{{ $t('dashboard.overdue') }}</span>
-					<span class="tst-stat__value tst-stat__value--danger">{{ stats.overdue }}</span>
+					<span class="tst-stat__icon tst-stat__icon--danger"><Icon icon="exclamation" /></span>
 				</div>
-				<span class="tst-stat__icon tst-stat__icon--danger"><Icon icon="exclamation" /></span>
+				<span class="tst-stat__value tst-stat__value--danger">{{ stats.overdue }}</span>
 			</div>
 			<div class="tst-stat">
-				<div class="tst-stat__body">
+				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.completionRate') }}</span>
-					<span class="tst-stat__value">{{ stats.completionRate }}<span class="tst-stat__unit">%</span></span>
+					<span class="tst-stat__icon"><Icon icon="chart-line" /></span>
 				</div>
-				<span class="tst-stat__icon"><Icon icon="chart-line" /></span>
+				<span class="tst-stat__value">{{ stats.completionRate }}<span class="tst-stat__unit">%</span></span>
 			</div>
 			<div class="tst-stat">
-				<div class="tst-stat__body">
+				<div class="tst-stat__head">
 					<span class="tst-stat__label">{{ $t('dashboard.pendingConfirmations') }}</span>
-					<span class="tst-stat__value">{{ stats.pendingConfirmation }}</span>
+					<span class="tst-stat__icon"><Icon :icon="['far', 'clock']" /></span>
 				</div>
-				<span class="tst-stat__icon"><Icon :icon="['far', 'clock']" /></span>
+				<span class="tst-stat__value">{{ stats.pendingConfirmation }}</span>
 			</div>
 		</div>
 
@@ -51,65 +51,70 @@
 			v-else
 			class="tst-grid"
 		>
-			<section class="tst-panel tst-panel--main">
-				<div class="tst-panel__head">
-					<h2>{{ $t('dashboard.overduePending') }}</h2>
-					<RouterLink
-						:to="{name: 'tasks.prioritized'}"
-						class="tst-panel__link"
+			<div class="tst-main-col">
+				<section class="tst-panel tst-panel--main">
+					<div class="tst-panel__head">
+						<h2>{{ $t('dashboard.overduePending') }}</h2>
+						<RouterLink
+							:to="{name: 'tasks.prioritized'}"
+							class="tst-panel__link"
+						>
+							{{ $t('dashboard.viewAll') }} <Icon icon="angle-right" />
+						</RouterLink>
+					</div>
+					<p
+						v-if="stats.attentionTasks.length === 0"
+						class="tst-panel__empty"
 					>
-						{{ $t('dashboard.viewAll') }} <Icon icon="angle-right" />
-					</RouterLink>
-				</div>
-				<p
-					v-if="stats.attentionTasks.length === 0"
-					class="tst-panel__empty"
-				>
-					{{ $t('dashboard.allClear') }}
-				</p>
-				<div
-					v-else
-					class="tst-table-wrap"
-				>
-					<table class="tst-table">
-						<thead>
-							<tr>
-								<th class="tst-id-col">
-									ID
-								</th>
-								<th>{{ $t('dashboard.task') }}</th>
-								<th>{{ $t('dashboard.assignee') }}</th>
-								<th>{{ $t('dashboard.department') }}</th>
-								<th>{{ $t('dashboard.status') }}</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr
-								v-for="task in stats.attentionTasks"
-								:key="task.id"
-								@click="goToTask(task.id)"
-							>
-								<td class="tst-id">
-									#{{ task.id }}
-								</td>
-								<td class="tst-table__task">
-									{{ task.title }}
-								</td>
-								<td>{{ task.assignee || '—' }}</td>
-								<td class="tst-dept">
-									{{ task.project }}
-								</td>
-								<td>
-									<span
-										class="tst-pill"
-										:class="`tst-pill--${statusAccent(task.status)}`"
-									>{{ statusLabel(task.status) }}</span>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</section>
+						{{ $t('dashboard.allClear') }}
+					</p>
+					<div
+						v-else
+						class="tst-table-wrap"
+					>
+						<table class="tst-table">
+							<thead>
+								<tr>
+									<th class="tst-id-col">
+										ID
+									</th>
+									<th>{{ $t('dashboard.task') }}</th>
+									<th>{{ $t('dashboard.assignee') }}</th>
+									<th>{{ $t('dashboard.department') }}</th>
+									<th>{{ $t('dashboard.status') }}</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr
+									v-for="task in stats.attentionTasks"
+									:key="task.id"
+									@click="goToTask(task.id)"
+								>
+									<td class="tst-id">
+										#{{ task.id }}
+									</td>
+									<td class="tst-table__task">
+										{{ task.title }}
+									</td>
+									<td>{{ task.assignee || '—' }}</td>
+									<td class="tst-dept">
+										{{ task.project }}
+									</td>
+									<td>
+										<span
+											class="tst-pill"
+											:class="`tst-pill--${statusAccent(task.status)}`"
+										>{{ statusLabel(task.status) }}</span>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</section>
+
+				<StatsTrendChart />
+				<RecentProjectsCarousel />
+			</div>
 
 			<div class="tst-side">
 				<section class="tst-panel">
@@ -185,8 +190,13 @@
 						</div>
 					</div>
 				</section>
+
+				<DashboardCalendar />
+				<RecentDiscussionCard />
 			</div>
 		</div>
+
+		<CheckInWidget />
 	</div>
 </template>
 
@@ -199,6 +209,12 @@ import TaskService, {type IDashboardStats} from '@/services/task'
 import {useTitle} from '@/composables/useTitle'
 import {useBaseStore} from '@/stores/base'
 import {TASK_STATUS} from '@/types/ITaskStatus'
+
+import StatsTrendChart from '@/components/dashboard/StatsTrendChart.vue'
+import DashboardCalendar from '@/components/dashboard/DashboardCalendar.vue'
+import RecentProjectsCarousel from '@/components/dashboard/RecentProjectsCarousel.vue'
+import RecentDiscussionCard from '@/components/dashboard/RecentDiscussionCard.vue'
+import CheckInWidget from '@/components/dashboard/CheckInWidget.vue'
 
 const {t} = useI18n()
 useTitle(() => t('dashboard.title'))
@@ -255,7 +271,6 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 $tst-red: #eb0a1e;
-$tst-navy: #001529;
 
 .tst-dash {
 	padding: 1.5rem;
@@ -290,35 +305,36 @@ $tst-navy: #001529;
 
 .tst-stat {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	flex-direction: column;
 	gap: 1rem;
 	padding: 1.25rem;
-	background: #ffffff;
+	background: var(--white);
 	border: 1px solid var(--grey-200);
-	border-radius: 8px;
+	border-radius: 12px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, .03);
 
 	&--danger {
-		border-block-start: 2px solid $tst-red;
+		border-inline-start: 4px solid $tst-red;
+		background: rgba(235, 10, 30, .04);
 	}
 
-	&__body {
+	&__head {
 		display: flex;
-		flex-direction: column;
-		gap: .4rem;
-		min-inline-size: 0;
+		align-items: center;
+		justify-content: space-between;
+		gap: .75rem;
 	}
 
 	&__label {
 		font-size: .72rem;
+		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: .06em;
 		color: var(--grey-500);
 
 		&--danger {
 			color: $tst-red;
-			font-weight: 600;
+			font-weight: 700;
 		}
 	}
 
@@ -340,16 +356,16 @@ $tst-navy: #001529;
 	&__icon {
 		display: grid;
 		place-items: center;
-		inline-size: 2.5rem;
-		block-size: 2.5rem;
-		border-radius: 999px;
+		inline-size: 2rem;
+		block-size: 2rem;
+		border-radius: 6px;
 		background: var(--grey-100);
 		color: var(--grey-500);
-		font-size: 1.1rem;
+		font-size: 1rem;
 		flex-shrink: 0;
 
 		&--danger {
-			background: rgba(235, 10, 30, .1);
+			background: rgba(235, 10, 30, .12);
 			color: $tst-red;
 		}
 	}
@@ -357,7 +373,7 @@ $tst-navy: #001529;
 
 .tst-grid {
 	display: grid;
-	grid-template-columns: 2fr 1fr;
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 	gap: 1.5rem;
 	align-items: start;
 
@@ -366,6 +382,7 @@ $tst-navy: #001529;
 	}
 }
 
+.tst-main-col,
 .tst-side {
 	display: flex;
 	flex-direction: column;
@@ -373,9 +390,9 @@ $tst-navy: #001529;
 }
 
 .tst-panel {
-	background: #ffffff;
+	background: var(--white);
 	border: 1px solid var(--grey-200);
-	border-radius: 8px;
+	border-radius: 12px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, .03);
 	overflow: hidden;
 
@@ -423,11 +440,18 @@ $tst-navy: #001529;
 .tst-table {
 	inline-size: 100%;
 	border-collapse: collapse;
-	white-space: nowrap;
+	table-layout: fixed;
 
 	th, td {
 		padding: .7rem 1.25rem;
 		text-align: start;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	&__task {
+		white-space: normal;
 	}
 
 	thead th {
@@ -504,8 +528,8 @@ $tst-navy: #001529;
 		place-items: center;
 		inline-size: 2rem;
 		block-size: 2rem;
-		border-radius: 999px;
-		background: $tst-navy;
+		border-radius: 6px;
+		background: var(--primary);
 		color: #ffffff;
 		font-size: .65rem;
 		font-weight: 700;
@@ -540,7 +564,7 @@ $tst-navy: #001529;
 	}
 
 	&__bar {
-		block-size: .35rem;
+		block-size: .4rem;
 		border-radius: 999px;
 		background: var(--grey-100);
 		overflow: hidden;
@@ -584,7 +608,7 @@ $tst-navy: #001529;
 			content: '';
 			position: absolute;
 			inset: 4px;
-			background: #ffffff;
+			background: var(--white);
 			border-radius: 999px;
 		}
 	}

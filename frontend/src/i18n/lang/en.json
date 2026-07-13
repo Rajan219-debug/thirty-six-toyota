@@ -64,7 +64,7 @@
       "usernameEmail": "Username Or Email Address",
       "usernamePlaceholder": "e.g. frederick",
       "email": "Email address",
-      "emailPlaceholder": "e.g. frederic{'@'}vikunja.io",
+      "emailPlaceholder": "e.g. frederic{'@'}thirtysixtoyota.com",
       "password": "Password",
       "passwordPlaceholder": "e.g. •••••••••••",
       "forgotPassword": "Forgot your password?",
@@ -337,9 +337,17 @@
     }
   },
   "project": {
+    "info": {
+      "createdBy": "By {name}",
+      "closed": "Closed",
+      "today": "Today",
+      "overdue": "Overdue",
+      "upcoming": "Upcoming"
+    },
     "archivedMessage": "This project is archived. It is not possible to create new or edit tasks for it.",
     "archived": "Archived",
     "showArchived": "Show Archived",
+    "favoriteProjects": "Favourites",
     "title": "Title",
     "color": "Color",
     "projects": "Projects",
@@ -746,7 +754,12 @@
     "prioritized": "Priorities",
     "dashboard": "Dashboard",
     "myTasks": "My Tasks",
-    "teamView": "Team View",
+    "teamView": "Departments",
+    "users": "Users",
+    "noUsers": "No users found. Join or create a team to see its members here.",
+    "notes": "Notes",
+    "documents": "Documents",
+    "discussion": "Discussion",
     "createTask": "Create Task",
     "settings": "Settings",
     "imprint": "Imprint",
@@ -780,7 +793,30 @@
     "statusOverdue": "Overdue",
     "statusOngoing": "Ongoing",
     "statusAwaiting": "Awaiting Approval",
-    "statusPending": "Pending"
+    "statusPending": "Pending",
+    "trend": {
+      "title": "Statistics",
+      "monthly": "Monthly",
+      "weekly": "Weekly",
+      "completed": "Completed",
+      "incomplete": "Incomplete"
+    },
+    "calendar": {
+      "noTasks": "No tasks due this day."
+    },
+    "recentProjects": {
+      "title": "Recent Projects",
+      "empty": "No projects yet."
+    },
+    "discussion": {
+      "title": "Recent Discussion",
+      "empty": "No conversations yet.",
+      "noMessages": "No messages yet."
+    },
+    "checkIn": {
+      "checkIn": "Check-In",
+      "checkOut": "Check-Out"
+    }
   },
   "misc": {
     "loading": "Loading…",
@@ -1000,7 +1036,12 @@
       "doLater": "Do Later",
       "noTasks": "No tasks here.",
       "tasksLabel": "Tasks",
-      "noDueDate": "No due date"
+      "noDueDate": "No due date",
+      "listView": "List",
+      "kanbanView": "Kanban",
+      "overdueGroup": "Overdue",
+      "todayGroup": "Today",
+      "upcomingGroup": "Upcoming"
     },
     "new": "Create a task",
     "createSuccess": "The task was successfully created.",
@@ -1094,6 +1135,7 @@
       "comment": "{count} comment | {count} comments",
       "commentCount": "Number of comments",
       "startDate": "Start Date",
+      "status": "Status",
       "title": "Title",
       "updated": "Updated",
       "doneAt": "Done At"
@@ -1398,9 +1440,8 @@
     "urlRequired": "A url is required."
   },
   "loadingError": {
-    "failed": "Loading failed, please {0}. If the error persists, please {1}.",
-    "tryAgain": "try again",
-    "contact": "contact us"
+    "failed": "Loading failed, please {0}. If the error persists, contact your system administrator.",
+    "tryAgain": "try again"
   },
   "notification": {
     "title": "Notifications",
@@ -1534,6 +1575,37 @@
     "version": "Version: {version}",
     "frontendVersion": "Frontend version: {version}",
     "apiVersion": "API version: {version}"
+  },
+  "notes": {
+    "add": "Add Note",
+    "titlePlaceholder": "Title",
+    "empty": "No notes yet. Add one to get started."
+  },
+  "shell": {
+    "comingSoon": "Coming soon."
+  },
+  "discussion": {
+    "memberChat": "Member chat",
+    "groupChat": "Group Chat",
+    "groupNamePlaceholder": "Group name",
+    "start": "Start",
+    "noConversations": "No conversations yet. Start one to get going.",
+    "typeMessage": "Type a message",
+    "selectConversation": "Select a conversation to see messages."
+  },
+  "documents": {
+    "newFolder": "New Folder",
+    "upload": "Upload",
+    "myFolders": "My Folders",
+    "folderNamePlaceholder": "Folder name",
+    "noFolders": "No folders yet. Create one to get started.",
+    "fileName": "File Name",
+    "owner": "Owner",
+    "date": "Date",
+    "size": "Size",
+    "download": "Download",
+    "noDocuments": "No documents in this folder yet.",
+    "selectFolder": "Select a folder to see its documents."
   },
   "reports": {
     "title": "Reports",

@@ -235,10 +235,10 @@
   --danger-a: 1;
   --danger: hsla(var(--danger-h), var(--danger-s), var(--danger-l), var(--danger-a));
 
-  // var(--primary) is Thirty Six Toyota red #EB0A1E
-  --primary-h: 354deg;
+  // var(--primary) is Taskopad blue #29B6F6, sampled from app.taskopad.com
+  --primary-h: 199deg;
   --primary-s: 92%;
-  --primary-l: 48%;
+  --primary-l: 56%;
   --primary-a: 1;
   --primary-hsl: var(--primary-h), var(--primary-s), var(--primary-l);
   --primary: hsla(var(--primary-h), var(--primary-s), var(--primary-l), var(--primary-a));
@@ -249,6 +249,15 @@
   --input-disabled-background-color: var(--grey-100);
   --input-disabled-border-color: var(--grey-300);
   --progress-value-background-color: var(--grey-500);
+
+  // Thirty Six Toyota shape language: rounder corners app-wide (buttons, inputs,
+  // boxes, notifications, tags, dropdowns, modals all consume these Bulma tokens).
+  --radius-small: 6px;
+  --radius: 8px;
+  --radius-large: 12px;
+  --control-radius: 8px;
+  --control-radius-small: 6px;
+  --input-radius: 8px;
   // END Overrides of Bulma defaults
 
 

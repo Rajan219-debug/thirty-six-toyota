@@ -53,6 +53,7 @@ label.checkbox {
 
 	input {
 		cursor: pointer;
+		accent-color: var(--primary);
 	}
 
 	&:not(:last-child) {

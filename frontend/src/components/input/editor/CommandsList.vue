@@ -27,10 +27,10 @@
 <script lang="ts">
 /* eslint-disable vue/component-api-style */
 import type {PropType} from 'vue'
-import type {IconProp} from '@fortawesome/fontawesome-svg-core'
+import type {IconName} from '@/components/misc/Icon'
 
 interface CommandItem {
-	icon: IconProp
+	icon: IconName
 	title: string
 	description: string
 	command: () => void

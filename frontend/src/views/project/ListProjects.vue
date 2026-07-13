@@ -29,10 +29,29 @@
 			</div>
 		</header>
 
-		<ProjectCardGrid
-			:projects="projects"
-			:show-archived="showArchived"
-		/>
+		<template v-if="favoriteProjects.length">
+			<h2 class="project-section-title">
+				{{ $t('project.favoriteProjects') }}
+			</h2>
+			<div class="project-stat-grid">
+				<ProjectStatCard
+					v-for="p in favoriteProjects"
+					:key="p.id"
+					:project="p"
+				/>
+			</div>
+		</template>
+
+		<h2 class="project-section-title">
+			{{ $t('project.projects') }}
+		</h2>
+		<div class="project-stat-grid">
+			<ProjectStatCard
+				v-for="p in projects"
+				:key="p.id"
+				:project="p"
+			/>
+		</div>
 	</div>
 </template>
 
@@ -41,12 +60,13 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 import FancyCheckbox from '@/components/input/FancyCheckbox.vue'
-import ProjectCardGrid from '@/components/project/partials/ProjectCardGrid.vue'
+import ProjectStatCard from '@/components/project/partials/ProjectStatCard.vue'
 
 import {useTitle} from '@/composables/useTitle'
 import {useStorage} from '@vueuse/core'
 
 import {useProjectStore} from '@/stores/projects'
+import type {IProject} from '@/modelTypes/IProject'
 
 const {t} = useI18n()
 const projectStore = useProjectStore()
@@ -55,11 +75,13 @@ useTitle(() => t('project.title'))
 const showArchived = useStorage('showArchived', false)
 
 const loading = computed(() => projectStore.isLoading)
-const projects = computed(() => {
-	return showArchived.value
-		? projectStore.projectsArray
-		: projectStore.projectsArray.filter(({isArchived}) => !isArchived)
-})
+// Saved filters live in the store as pseudo-projects with negative ids (see
+// ProjectCard.vue's `id < -1` check) — exclude them here, they don't have
+// real tasks to aggregate stats from.
+const projects = computed(() => projectStore.projectsArray
+	.filter(p => p.id > 0 && (showArchived.value || !p.isArchived)) as IProject[])
+const favoriteProjects = computed(() => (projectStore.favoriteProjects as IProject[])
+	.filter(p => p.id > 0))
 </script>
 
 <style lang="scss" scoped>
@@ -87,23 +109,20 @@ const projects = computed(() => {
 	}
 }
 
-.project:not(:first-child) {
-	margin-block-start: 1rem;
+.project-section-title {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: var(--grey-900);
+	margin: 1.5rem 0 .75rem;
+
+	&:first-of-type {
+		margin-block-start: 0;
+	}
 }
 
-.project-title {
-	display: flex;
-	align-items: center;
-}
-
-.is-archived {
-	font-size: 0.75rem;
-	border: 1px solid var(--grey-500);
-	color: $grey !important;
-	padding: 2px 4px;
-	border-radius: 3px;
-	font-family: $vikunja-font;
-	background: var(--white-translucent);
-	margin-inline-start: .5rem;
+.project-stat-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 1rem;
 }
 </style>

@@ -127,9 +127,6 @@ function doDelete() {
 			</FormField>
 			<p class="help">
 				{{ $t('project.webhooks.secretHint') }}
-				<BaseButton href="https://vikunja.io/docs/webhooks/">
-					{{ $t('project.webhooks.secretDocs') }}
-				</BaseButton>
 			</p>
 			<BaseButton
 				class="mbe-2 has-text-primary"

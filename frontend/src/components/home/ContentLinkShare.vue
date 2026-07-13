@@ -46,7 +46,6 @@
 			</h1>
 			<Card class="has-text-start view">
 				<RouterView />
-				<PoweredByLink utm-medium="link_share" />
 			</Card>
 		</div>
 	</div>
@@ -62,7 +61,6 @@ import {useLabelStore} from '@/stores/labels'
 import {useAuthStore} from '@/stores/auth'
 
 import Logo from '@/components/home/Logo.vue'
-import PoweredByLink from './PoweredByLink.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import Card from '@/components/misc/Card.vue'
 import Message from '@/components/misc/Message.vue'

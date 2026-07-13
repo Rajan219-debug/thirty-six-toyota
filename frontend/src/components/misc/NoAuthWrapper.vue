@@ -1,48 +1,38 @@
 <template>
 	<div class="no-auth-wrapper">
-		<Logo
-			class="logo"
-			width="200"
-			height="58"
-		/>
-		<div class="noauth-container">
-			<section
-				class="image"
-				:class="{ 'has-message': motd !== '' }"
-			>
+		<main
+			id="main-content"
+			class="noauth-card"
+		>
+			<header class="noauth-card__header">
+				<Logo class="noauth-card__logo" />
+				<div class="noauth-card__rule" />
+				<span class="noauth-card__kicker">Internal Operations Portal</span>
+			</header>
+			<div class="noauth-card__body">
 				<Message v-if="motd !== ''">
 					{{ motd }}
 				</Message>
-				<div>
-					<span class="image-kicker">THIRTY SIX TOYOTA · OPERATIONS</span>
-					<h2 class="image-title">
-						{{ $t("misc.welcomeBack") }}
-					</h2>
-				</div>
-			</section>
-			<main
-				id="main-content"
-				class="content"
-			>
-				<div>
-					<h2
-						v-if="title"
-						class="title"
-					>
-						{{ title }}
-					</h2>
-					<ApiConfig v-if="shouldShowApiConfig" />
-					<Message
-						v-if="motd !== ''"
-						class="is-hidden-tablet mbe-4"
-					>
-						{{ motd }}
-					</Message>
-					<slot />
-				</div>
-				<Legal />
-			</main>
-		</div>
+				<h2
+					v-if="title"
+					class="title"
+				>
+					{{ title }}
+				</h2>
+				<ApiConfig v-if="shouldShowApiConfig" />
+				<slot />
+			</div>
+		</main>
+		<footer class="noauth-trust">
+			<span class="noauth-trust__badge">
+				<Icon icon="lock" />
+				Secure Internal Environment
+			</span>
+			<p class="noauth-trust__note">
+				Authorized Toyota Personnel Only. All access is logged and monitored under corporate security protocols.
+			</p>
+		</footer>
+		<Legal />
 	</div>
 </template>
 
@@ -86,86 +76,89 @@ useTitle(() => title.value)
 
 <style lang="scss" scoped>
 .no-auth-wrapper {
-	background: var(--site-background);
+	background-color: #f4f4f4;
+	background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, .04) 1px, transparent 0);
+	background-size: 32px 32px;
 	min-block-size: 100vh;
 	display: flex;
 	flex-direction: column;
-	place-items: center;
-
-	@media screen and (max-width: $fullhd) {
-		padding-block-end: 15rem;
-	}
+	align-items: center;
+	justify-content: center;
+	padding: 2rem 1rem;
 }
 
-.noauth-container {
-	max-inline-size: $desktop;
+.noauth-card {
 	inline-size: 100%;
-	min-block-size: 60vh;
-	display: flex;
+	max-inline-size: 440px;
 	background-color: var(--white);
-	box-shadow: var(--shadow-md);
+	border: 1px solid var(--grey-200);
+	border-radius: $radius;
+	box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, .1));
 	overflow: hidden;
 
-	@media screen and (min-width: $desktop) {
-		border-radius: $radius;
+	&__header {
+		padding: 2.25rem 2rem 1.5rem;
+		text-align: center;
+		border-block-end: 1px solid var(--grey-200);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	&__logo {
+		margin-block-end: 1rem;
+	}
+
+	&__rule {
+		inline-size: 3rem;
+		block-size: 3px;
+		background: var(--primary);
+		margin-block-end: 1rem;
+	}
+
+	&__kicker {
+		font-family: $tst-mono-font;
+		font-size: .68rem;
+		font-weight: 600;
+		letter-spacing: .18em;
+		text-transform: uppercase;
+		color: var(--grey-500);
+	}
+
+	&__body {
+		padding: 2rem;
 	}
 }
 
-.image {
-	inline-size: 50%;
-	padding: 1rem;
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-end;
+.noauth-trust {
+	margin-block-start: 2rem;
+	text-align: center;
+	max-inline-size: 420px;
 
-	@media screen and (max-width: $tablet) {
-		display: none;
-	}
+	&__badge {
+		display: inline-flex;
+		align-items: center;
+		gap: .5rem;
+		padding: .5rem 1.25rem;
+		border-radius: 999px;
+		background: var(--white);
+		border: 1px solid var(--grey-200);
+		font-family: $tst-mono-font;
+		font-size: .68rem;
+		font-weight: 600;
+		letter-spacing: .12em;
+		text-transform: uppercase;
+		color: var(--grey-900);
 
-	@media screen and (min-width: $tablet) {
-		// Toyota navy panel per DESIGN.md, red accent bar
-		background: linear-gradient(160deg, #0a2540 0%, #001529 60%);
-		border-inline-end: 4px solid var(--primary);
-		position: relative;
-
-		&.has-message {
-			justify-content: space-between;
+		svg {
+			color: var(--primary);
 		}
 	}
-}
 
-.image-kicker {
-	font-family: $tst-mono-font;
-	font-size: .7rem;
-	font-weight: 500;
-	letter-spacing: .13em;
-	color: hsla(0, 0%, 100%, .55);
-}
-
-.content {
-	display: flex;
-	justify-content: space-between;
-	flex-direction: column;
-	padding: 2rem 2rem 1.5rem;
-
-	@media screen and (max-width: $desktop) {
-		inline-size: 100%;
-		max-inline-size: 450px;
-		margin-inline: auto;
+	&__note {
+		margin-block-start: .75rem;
+		font-size: .78rem;
+		color: var(--grey-500);
 	}
-
-	@media screen and (min-width: $desktop) {
-		inline-size: 50%;
-	}
-}
-
-.logo {
-	max-inline-size: 100%;
-	margin: 1rem 0;
-}
-
-.image-title {
-	color: hsl(0deg, 0%, 100%);
-	font-size: 2.5rem;
 }
 </style>

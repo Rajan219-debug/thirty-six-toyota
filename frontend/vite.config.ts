@@ -170,9 +170,9 @@ function getBuildConfig(env: Record<string, string>) {
 				injectRegister: false,
 				useCredentials: true,
 				manifest: {
-					name: 'Vikunja',
-					short_name: 'Vikunja',
-					theme_color: '#1973ff',
+					name: 'Thirty Six Toyota',
+					short_name: 'TST Ops',
+					theme_color: '#eb0a1e',
 					icons: [
 						{
 							src: './images/icons/android-chrome-192x192.png',

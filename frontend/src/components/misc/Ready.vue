@@ -95,6 +95,7 @@ const baseStore = useBaseStore()
 	margin-block-end: 1rem;
 	inline-size: 100px;
 	block-size: 100px;
+	color: var(--primary);
 }
 
 .loader-container {

@@ -420,7 +420,7 @@ func InitDefaultConfig() {
 	MailerUsername.setDefault("")
 	MailerPassword.setDefault("")
 	MailerSkipTLSVerify.setDefault(false)
-	MailerFromEmail.setDefault("mail@vikunja")
+	MailerFromEmail.setDefault("mail@thirtysixtoyota.com")
 	MailerQueuelength.setDefault(100)
 	MailerQueueTimeout.setDefault(30)
 	MailerForceSSL.setDefault(false)

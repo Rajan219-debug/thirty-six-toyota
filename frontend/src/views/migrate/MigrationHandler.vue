@@ -256,6 +256,7 @@ async function migrate() {
 	display: block;
 	max-block-size: 100px;
 	max-inline-size: 100px;
+	color: var(--primary);
 }
 
 .progress-dots {

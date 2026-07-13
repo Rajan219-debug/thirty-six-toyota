@@ -229,8 +229,6 @@ async function dispute() {
 </script>
 
 <style lang="scss" scoped>
-$tst-red: #eb0a1e;
-
 .task-accountability-banner {
 	.notification {
 		margin-block-end: 1rem;
@@ -244,8 +242,8 @@ $tst-red: #eb0a1e;
 .tst-closure {
 	margin-block-end: 1rem;
 	border: 1px solid var(--grey-200);
-	border-radius: 8px;
-	background: #ffffff;
+	border-radius: 12px;
+	background: var(--white);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
 	overflow: hidden;
 
@@ -258,7 +256,11 @@ $tst-red: #eb0a1e;
 		border-block-end: 1px solid var(--grey-200);
 		font-size: 1.05rem;
 		font-weight: 700;
-		color: $tst-red;
+		color: var(--grey-900);
+
+		svg {
+			color: var(--danger);
+		}
 	}
 
 	&__restriction {
@@ -266,16 +268,16 @@ $tst-red: #eb0a1e;
 		align-items: flex-start;
 		gap: .6rem;
 		margin: 1.25rem 1.25rem 0;
-		padding: .75rem;
-		border-radius: 4px;
-		background: #fffbeb;
-		border: 1px solid #fcd34d;
-		color: #b45309;
+		padding: .9rem 1rem;
+		border-radius: 0 6px 6px 0;
+		background: var(--grey-50);
+		border-inline-start: 4px solid var(--danger);
+		color: var(--grey-900);
 
 		p {
 			margin: 0;
 			font-size: .85rem;
-			color: #92400e;
+			color: var(--grey-600);
 		}
 	}
 
@@ -300,17 +302,17 @@ $tst-red: #eb0a1e;
 		align-items: flex-start;
 		gap: .75rem;
 		margin: 1rem 1.25rem;
-		padding: 1rem;
-		border-radius: 4px;
+		padding: 1.1rem;
+		border-radius: 8px;
 		background: var(--grey-50);
 		border: 1px solid var(--grey-200);
 		cursor: pointer;
 
 		input {
 			margin-block-start: .2rem;
-			inline-size: 1.1rem;
-			block-size: 1.1rem;
-			accent-color: $tst-red;
+			inline-size: 1.35rem;
+			block-size: 1.35rem;
+			accent-color: var(--primary);
 			flex-shrink: 0;
 		}
 	}

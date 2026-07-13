@@ -89,7 +89,7 @@ const mailTemplateHTML = `
 <div style="width: 100%; font-family: 'Open Sans', sans-serif; Text-rendering: optimizeLegibility">
     <div style="width: 600px; margin: 0 auto; Text-align: justify;">
         <h1 style="font-size: 30px; Text-align: center;">
-            <img src="cid:logo.png" style="height: 75px;" alt="Vikunja"/>
+            <img src="cid:logo.png" style="height: 75px;" alt="Thirty Six Toyota"/>
         </h1>
         <div class="email-card" style="border: 1px solid #dbdbdb; -webkit-box-shadow: 0.3em 0.3em 0.8em #e6e6e6; box-shadow: 0.3em 0.3em 0.8em #e6e6e6; color: #4a4a4a; padding: 5px 25px; border-radius: 3px; background: #fff;">
 <p>
@@ -102,7 +102,7 @@ const mailTemplateHTML = `
 
 {{ if .ActionURL }}
 	<a class="email-button" href="{{ .ActionURL }}" title="{{ .ActionText }}"
-		style="position: relative;Text-decoration:none;display: block;border-radius: 4px;cursor: pointer;padding-bottom: 8px;padding-left: 14px;padding-right: 14px;padding-top: 8px;width:280px;margin:10px auto;Text-align: center;white-space: nowrap;border: 0;Text-transform: uppercase;font-size: 14px;font-weight: 700;-webkit-box-shadow: 0 3px 6px rgba(107,114,128,.12),0 2px 4px rgba(107,114,128,.1);box-shadow: 0 3px 6px rgba(107,114,128,.12),0 2px 4px rgba(107,114,128,.1);background-color: #1973ff;border-color: transparent;color: #fff;">
+		style="position: relative;Text-decoration:none;display: block;border-radius: 4px;cursor: pointer;padding-bottom: 8px;padding-left: 14px;padding-right: 14px;padding-top: 8px;width:280px;margin:10px auto;Text-align: center;white-space: nowrap;border: 0;Text-transform: uppercase;font-size: 14px;font-weight: 700;-webkit-box-shadow: 0 3px 6px rgba(107,114,128,.12),0 2px 4px rgba(107,114,128,.1);box-shadow: 0 3px 6px rgba(107,114,128,.12),0 2px 4px rgba(107,114,128,.1);background-color: #eb0a1e;border-color: transparent;color: #fff;">
 		{{ .ActionText }}
 	</a>
 {{end}}

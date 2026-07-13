@@ -94,14 +94,6 @@
 			{{ $t('user.settings.caldav.createToken') }}
 		</XButton>
 
-		<p>
-			<BaseButton
-				:href="CALDAV_DOCS"
-				target="_blank"
-			>
-				{{ $t('user.settings.caldav.more') }}
-			</BaseButton>
-		</p>
 	</Card>
 </template>
 
@@ -109,11 +101,9 @@
 import {computed, ref, shallowReactive} from 'vue'
 import {useI18n} from 'vue-i18n'
 
-import {CALDAV_DOCS} from '@/urls'
 import {useTitle} from '@/composables/useTitle'
 import {useCopyToClipboard} from '@/composables/useCopyToClipboard'
 import {success} from '@/message'
-import BaseButton from '@/components/base/BaseButton.vue'
 import Message from '@/components/misc/Message.vue'
 import FormField from '@/components/input/FormField.vue'
 import CaldavTokenService from '@/services/caldavToken'

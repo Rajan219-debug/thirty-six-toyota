@@ -1,218 +1,139 @@
-import {library} from '@fortawesome/fontawesome-svg-core'
-import {
-	faAlignLeft,
-	faAngleLeft,
-	faAngleRight,
-	faAnglesUp,
-	faArchive,
-	faArrowLeft,
-	faArrowDownShortWide,
-	faArrowUpFromBracket,
-	faArrowUpRightFromSquare,
-	faArrowUpShortWide,
-	faBold,
-	faItalic,
-	faStrikethrough,
-	faCode,
-	faBars,
-	faBell,
-	faBolt,
-	faCalendar,
-	faChartBar,
-	faChartLine,
-	faCheck,
-	faCheckDouble,
-	faChessKnight,
-	faChevronDown,
-	faCircleInfo,
-	faCloudDownloadAlt,
-	faCloudUploadAlt,
-	faCocktail,
-	faCoffee,
-	faCog,
-	faCopy,
-	faDownload,
-	faEllipsisH,
-	faEllipsisV,
-	faExclamation,
-	faExclamationCircle,
-	faEye,
-	faEyeSlash,
-	faFile,
-	faFileImage,
-	faFilePdf,
-	faFillDrip,
-	faFilter,
-	faForward,
-	faGripLines,
-	faHeader,
-	faHistory,
-	faImage,
-	faKeyboard,
-	faLayerGroup,
-	faList,
-	faListOl,
-	faLock,
-	faPaperclip,
-	faPaste,
-	faPen,
-	faPencilAlt,
-	faPercent,
-	faPlay,
-	faPlus,
-	faPowerOff,
-	faRss,
-	faSearch,
-	faShareAlt,
-	faSignOutAlt,
-	faSitemap,
-	faSort,
-	faSortUp,
-	faStar as faStarSolid,
-	faStop,
-	faTachometerAlt,
-	faTags,
-	faTasks,
-	faTh,
-	faTimes,
-	faTrashAlt,
-	faUser,
-	faUserEdit,
-	faUsers,
-	faQuoteRight,
-	faListUl,
-	faLink,
-	faUndo,
-	faRedo,
-	faUnlink,
-	faParagraph,
-	faTable,
-	faX, faArrowTurnDown, faListCheck, faXmark, faXmarksLines, faFont, faRulerHorizontal, faUnderline,
-} from '@fortawesome/free-solid-svg-icons'
-import {
-	faBellSlash,
-	faCalendarAlt,
-	faCheckSquare,
-	faClock,
-	faComments,
-	faSave,
-	faSquareCheck,
-	faStar,
-	faSun,
-	faTimesCircle,
-	faCircleQuestion, faFaceLaugh,
-} from '@fortawesome/free-regular-svg-icons'
-import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
+import {defineComponent, h, type PropType} from 'vue'
+import * as icons from '@lucide/vue'
 
-import type {FontAwesomeIcon as FontAwesomeIconFixedTypes} from '@/types/vue-fontawesome'
+export type IconName = string | [string, string]
 
-library.add(faBold)
-library.add(faUndo)
-library.add(faRedo)
-library.add(faItalic)
-library.add(faLink)
-library.add(faUnlink)
-library.add(faParagraph)
-library.add(faSquareCheck)
-library.add(faTable)
-library.add(faFile)
-library.add(faFileImage)
-library.add(faFilePdf)
-library.add(faCheckSquare)
-library.add(faStrikethrough)
-library.add(faCode)
-library.add(faQuoteRight)
-library.add(faListUl)
-library.add(faAlignLeft)
-library.add(faAngleLeft)
-library.add(faAngleRight)
-library.add(faArchive)
-library.add(faArrowLeft)
-library.add(faBars)
-library.add(faBell)
-library.add(faBellSlash)
-library.add(faCalendar)
-library.add(faChartBar)
-library.add(faChartLine)
-library.add(faCalendarAlt)
-library.add(faCheck)
-library.add(faCheckDouble)
-library.add(faChessKnight)
-library.add(faChevronDown)
-library.add(faCircleInfo)
-library.add(faCircleQuestion)
-library.add(faClock)
-library.add(faCloudDownloadAlt)
-library.add(faCloudUploadAlt)
-library.add(faCocktail)
-library.add(faCoffee)
-library.add(faCog)
-library.add(faComments)
-library.add(faCopy)
-library.add(faDownload)
-library.add(faEllipsisH)
-library.add(faEllipsisV)
-library.add(faExclamationCircle)
-library.add(faEye)
-library.add(faEyeSlash)
-library.add(faFillDrip)
-library.add(faFilter)
-library.add(faForward)
-library.add(faGripLines)
-library.add(faHeader)
-library.add(faHistory)
-library.add(faImage)
-library.add(faKeyboard)
-library.add(faLayerGroup)
-library.add(faList)
-library.add(faListOl)
-library.add(faLock)
-library.add(faPaperclip)
-library.add(faPaste)
-library.add(faPen)
-library.add(faPencilAlt)
-library.add(faPercent)
-library.add(faPlay)
-library.add(faPlus)
-library.add(faPowerOff)
-library.add(faRss)
-library.add(faSave)
-library.add(faSearch)
-library.add(faShareAlt)
-library.add(faSignOutAlt)
-library.add(faSitemap)
-library.add(faSort)
-library.add(faSortUp)
-library.add(faStar)
-library.add(faStarSolid)
-library.add(faStop)
-library.add(faSun)
-library.add(faTachometerAlt)
-library.add(faTags)
-library.add(faTasks)
-library.add(faTh)
-library.add(faTimes)
-library.add(faTimesCircle)
-library.add(faTrashAlt)
-library.add(faUser)
-library.add(faUserEdit)
-library.add(faUsers)
-library.add(faArrowDownShortWide)
-library.add(faArrowUpFromBracket)
-library.add(faArrowUpShortWide)
-library.add(faX)
-library.add(faAnglesUp)
-library.add(faBolt)
-library.add(faArrowTurnDown)
-library.add(faListCheck)
-library.add(faXmark)
-library.add(faXmarksLines)
-library.add(faFont)
-library.add(faRulerHorizontal)
-library.add(faUnderline)
-library.add(faFaceLaugh)
-library.add(faExclamation)
-library.add(faArrowUpRightFromSquare)
+// Maps the FontAwesome-style icon names still used across the app (e.g. `icon="chart-line"`,
+// `:icon="['far', 'clock']"`) to their `@lucide/vue` equivalents. The FA style prefix ('fas'/'far')
+// is ignored — Lucide doesn't have solid/regular variants, just one icon per concept.
+const ICON_MAP: Record<string, keyof typeof icons> = {
+	'align-left': 'AlignLeft',
+	'angle-left': 'ChevronLeft',
+	'angle-right': 'ChevronRight',
+	'angles-up': 'ChevronsUp',
+	'archive': 'Archive',
+	'arrow-left': 'ArrowLeft',
+	'arrow-down-short-wide': 'ArrowDownWideNarrow',
+	'arrow-up-from-bracket': 'ArrowUpFromLine',
+	'arrow-up-right-from-square': 'ExternalLink',
+	'arrow-up-short-wide': 'ArrowUpNarrowWide',
+	'bold': 'Bold',
+	'italic': 'Italic',
+	'strikethrough': 'Strikethrough',
+	'code': 'Code',
+	'bars': 'Menu',
+	'bell': 'Bell',
+	'bolt': 'Zap',
+	'calendar': 'Calendar',
+	'chart-bar': 'BarChart3',
+	'chart-line': 'LineChart',
+	'check': 'Check',
+	'check-double': 'CheckCheck',
+	'chess-knight': 'Sparkles',
+	'chevron-down': 'ChevronDown',
+	'circle-info': 'Info',
+	'cloud-download-alt': 'CloudDownload',
+	'cloud-upload-alt': 'CloudUpload',
+	'cocktail': 'Martini',
+	'coffee': 'Coffee',
+	'cog': 'Settings',
+	'copy': 'Copy',
+	'moon': 'Moon',
+	'download': 'Download',
+	'ellipsis-h': 'Ellipsis',
+	'ellipsis-v': 'EllipsisVertical',
+	'exclamation': 'TriangleAlert',
+	'exclamation-circle': 'AlertCircle',
+	'eye': 'Eye',
+	'eye-slash': 'EyeOff',
+	'file': 'File',
+	'file-image': 'FileImage',
+	'file-pdf': 'FileText',
+	'folder': 'Folder',
+	'note-sticky': 'StickyNote',
+	'fill-drip': 'PaintBucket',
+	'filter': 'Filter',
+	'forward': 'FastForward',
+	'grip-lines': 'GripHorizontal',
+	'header': 'Heading',
+	'history': 'History',
+	'image': 'Image',
+	'keyboard': 'Keyboard',
+	'layer-group': 'Layers',
+	'list': 'List',
+	'list-ol': 'ListOrdered',
+	'lock': 'Lock',
+	'paperclip': 'Paperclip',
+	'paste': 'Clipboard',
+	'pen': 'Pen',
+	'pencil-alt': 'Pencil',
+	'percent': 'Percent',
+	'play': 'Play',
+	'plus': 'Plus',
+	'power-off': 'Power',
+	'rss': 'Rss',
+	'search': 'Search',
+	'share-alt': 'Share2',
+	'sign-out-alt': 'LogOut',
+	'sitemap': 'Network',
+	'sort': 'ArrowUpDown',
+	'sort-up': 'ArrowUp',
+	'star': 'Star',
+	'stop': 'Square',
+	'tachometer-alt': 'Gauge',
+	'tags': 'Tags',
+	'tasks': 'ListTodo',
+	'th': 'LayoutGrid',
+	'times': 'X',
+	'trash-alt': 'Trash2',
+	'user': 'User',
+	'user-edit': 'UserCog',
+	'users': 'Users',
+	'quote-right': 'Quote',
+	'list-ul': 'List',
+	'link': 'Link',
+	'undo': 'Undo2',
+	'redo': 'Redo2',
+	'unlink': 'Unlink',
+	'paragraph': 'Pilcrow',
+	'table': 'Table',
+	'x': 'X',
+	'arrow-turn-down': 'CornerDownRight',
+	'list-check': 'ListChecks',
+	'xmark': 'X',
+	'xmarks-lines': 'XCircle',
+	'font': 'Type',
+	'ruler-horizontal': 'Ruler',
+	'underline': 'Underline',
+	'bell-slash': 'BellOff',
+	'calendar-alt': 'CalendarDays',
+	'check-square': 'SquareCheck',
+	'clock': 'Clock',
+	'comments': 'MessageSquare',
+	'save': 'Save',
+	'square-check': 'SquareCheck',
+	'sun': 'Sun',
+	'times-circle': 'XCircle',
+	'circle-question': 'HelpCircle',
+	'face-laugh': 'Laugh',
+}
 
-// overwriting the wrong types
-export default FontAwesomeIcon as unknown as FontAwesomeIconFixedTypes
+export default defineComponent({
+	name: 'Icon',
+	props: {
+		icon: {
+			type: [String, Array] as PropType<IconName>,
+			required: true,
+		},
+	},
+	setup(props, {attrs}) {
+		return () => {
+			const name = Array.isArray(props.icon) ? props.icon[1] : props.icon
+			const component = name ? icons[ICON_MAP[name]] : undefined
+			if (!component) {
+				return null
+			}
+			return h(component, attrs)
+		}
+	},
+})

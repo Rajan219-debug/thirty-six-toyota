@@ -30,6 +30,7 @@ files/
 vikunja-dump*
 vikunja-*.exe
 vikunja-t36-linux
+vikunja-*.log
 vendor/
 os-packages/
 mage_output_file.go

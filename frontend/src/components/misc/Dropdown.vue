@@ -43,13 +43,13 @@
 import {ref, nextTick, watch, computed} from 'vue'
 import {onClickOutside} from '@vueuse/core'
 import {computePosition, autoPlacement, offset, shift} from '@floating-ui/dom'
-import type {IconProp} from '@fortawesome/fontawesome-svg-core'
+import type {IconName} from '@/components/misc/Icon'
 
 import CustomTransition from '@/components/misc/CustomTransition.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 withDefaults(defineProps<{
-	triggerIcon?: IconProp
+	triggerIcon?: IconName
 	triggerLabel?: string
 }>(), {
 	triggerIcon: 'ellipsis-h',

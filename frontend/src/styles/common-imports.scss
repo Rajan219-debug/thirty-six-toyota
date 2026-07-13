@@ -12,6 +12,13 @@
 
 $family-sans-serif: 'Hanken Grotesk', 'Open Sans', Helvetica, Arial, sans-serif;
 
+// Thirty Six Toyota shape language — mirrors the --radius* CSS custom property
+// overrides in colors.scss, for components (e.g. Card.vue) that read the Sass
+// variable directly instead of `var(--radius, ...)`.
+$radius-small: 6px;
+$radius: 8px;
+$radius-large: 12px;
+
 // the default values get overwritten by the definitions above
 @import "bulma-css-variables/sass/utilities/_all";
 

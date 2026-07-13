@@ -244,6 +244,26 @@ const router = createRouter({
 			component: () => import('@/views/reports/ReportsView.vue'),
 		},
 		{
+			path: '/users',
+			name: 'users.index',
+			component: () => import('@/views/users/UsersView.vue'),
+		},
+		{
+			path: '/notes',
+			name: 'notes.index',
+			component: () => import('@/views/notes/NotesView.vue'),
+		},
+		{
+			path: '/documents',
+			name: 'documents.index',
+			component: () => import('@/views/documents/DocumentsView.vue'),
+		},
+		{
+			path: '/discussion',
+			name: 'discussion.index',
+			component: () => import('@/views/discussion/DiscussionView.vue'),
+		},
+		{
 			// Redirect old list routes to the respective project routes
 			// see: https://router.vuejs.org/guide/essentials/dynamic-matching.html#catch-all-404-not-found-route
 			path: '/lists:pathMatch(.*)*',

@@ -38,25 +38,27 @@
 					</RouterLink>
 				</li>
 				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyM'"
-						:to="{ name: 'teams.index'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon icon="users" />
-						</span>
-						{{ $t('navigation.teamView') }}
-					</RouterLink>
-				</li>
-				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyP'"
-						:to="{ name: 'projects.index'}"
-					>
+					<RouterLink :to="{ name: 'projects.index'}">
 						<span class="menu-item-icon icon">
 							<Icon icon="layer-group" />
 						</span>
 						{{ $t('project.projects') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink :to="{ name: 'discussion.index'}">
+						<span class="menu-item-icon icon">
+							<Icon icon="comments" />
+						</span>
+						{{ $t('navigation.discussion') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink :to="{ name: 'documents.index'}">
+						<span class="menu-item-icon icon">
+							<Icon icon="folder" />
+						</span>
+						{{ $t('navigation.documents') }}
 					</RouterLink>
 				</li>
 				<li>
@@ -68,11 +70,38 @@
 					</RouterLink>
 				</li>
 				<li>
+					<RouterLink :to="{ name: 'notes.index'}">
+						<span class="menu-item-icon icon">
+							<Icon icon="note-sticky" />
+						</span>
+						{{ $t('navigation.notes') }}
+					</RouterLink>
+				</li>
+				<li>
 					<RouterLink :to="{ name: 'reports'}">
 						<span class="menu-item-icon icon">
 							<Icon icon="chart-bar" />
 						</span>
 						{{ $t('reports.title') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink :to="{ name: 'users.index'}">
+						<span class="menu-item-icon icon">
+							<Icon icon="users" />
+						</span>
+						{{ $t('navigation.users') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink
+						v-shortcut="'KeyG KeyM'"
+						:to="{ name: 'teams.index'}"
+					>
+						<span class="menu-item-icon icon">
+							<Icon icon="sitemap" />
+						</span>
+						{{ $t('navigation.teamView') }}
 					</RouterLink>
 				</li>
 			</menu>
@@ -170,17 +199,15 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 </script>
 
 <style lang="scss" scoped>
-// Thirty Six Toyota sidebar — deep navy shell, white text, red active state.
-$tst-navy: #001529;
-$tst-red: #eb0a1e;
-
+// Thirty Six Toyota sidebar — Taskopad-style light shell, dark text, blue active state.
 .menu-container {
 	--sidebar-width: #{$navbar-width};
 
 	display: flex;
 	flex-direction: column;
-	background: $tst-navy;
-	color: rgba(255, 255, 255, .82);
+	background: var(--white);
+	color: var(--grey-600);
+	border-inline-end: 1px solid var(--card-border-color);
 	padding: 1rem 0 1.25rem;
 	transition: transform $transition-duration ease-in;
 	position: fixed;
@@ -217,7 +244,7 @@ $tst-red: #eb0a1e;
 	gap: .75rem;
 	padding: .25rem 1.5rem 1.25rem;
 	margin-block-end: .75rem;
-	border-block-end: 1px solid rgba(255, 255, 255, .1);
+	border-block-end: 1px solid var(--card-border-color);
 
 	&__avatar {
 		display: grid;
@@ -225,8 +252,8 @@ $tst-red: #eb0a1e;
 		inline-size: 2.5rem;
 		block-size: 2.5rem;
 		border-radius: 999px;
-		background: rgba(255, 255, 255, .12);
-		color: #ffffff;
+		background: hsla(var(--primary-hsl), .12);
+		color: var(--primary);
 		font-size: 1.1rem;
 		flex-shrink: 0;
 	}
@@ -240,7 +267,7 @@ $tst-red: #eb0a1e;
 	&__name {
 		font-weight: 700;
 		font-size: 1rem;
-		color: #ffffff;
+		color: var(--grey-900);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -248,7 +275,7 @@ $tst-red: #eb0a1e;
 
 	&__role {
 		font-size: .8rem;
-		color: rgba(255, 255, 255, .6);
+		color: var(--grey-400);
 	}
 }
 
@@ -264,24 +291,24 @@ $tst-red: #eb0a1e;
 		align-items: center;
 		gap: .85rem;
 		padding: .6rem 1.5rem;
-		color: rgba(255, 255, 255, .82);
+		color: var(--grey-600);
 		border-inline-start: 3px solid transparent;
 		transition: background-color .15s ease, color .15s ease;
 
 		.menu-item-icon {
-			opacity: .85;
+			opacity: .7;
 		}
 
 		&:hover {
-			color: #ffffff;
-			background: rgba(255, 255, 255, .08);
+			color: var(--grey-900);
+			background: var(--grey-50);
 		}
 
 		&.router-link-active {
-			color: $tst-red;
+			color: var(--primary);
 			font-weight: 700;
-			background: rgba(235, 10, 30, .1);
-			border-inline-start-color: $tst-red;
+			background: hsla(var(--primary-hsl), .1);
+			border-inline-start-color: var(--primary);
 
 			.menu-item-icon {
 				opacity: 1;
@@ -290,19 +317,19 @@ $tst-red: #eb0a1e;
 	}
 }
 
-// Project / favorites tree below the main menu — lighten for the navy background.
+// Project / favorites tree below the main menu.
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
 }
 
 :deep(.menu-label),
 :deep(.menu-list a) {
-	color: rgba(255, 255, 255, .7);
+	color: var(--grey-500);
 }
 
 :deep(.menu-list a:hover) {
-	color: #ffffff;
-	background: rgba(255, 255, 255, .08);
+	color: var(--grey-900);
+	background: var(--grey-50);
 }
 
 .tst-create-wrap {
@@ -316,15 +343,15 @@ $tst-red: #eb0a1e;
 	gap: .5rem;
 	inline-size: 100%;
 	padding: .6rem 1rem;
-	border-radius: 4px;
-	background: $tst-red;
+	border-radius: var(--control-radius);
+	background: var(--primary);
 	color: #ffffff;
 	font-weight: 700;
 	font-size: .95rem;
 	transition: background-color .15s ease;
 
 	&:hover {
-		background: #c00014;
+		background: hsla(var(--primary-h), var(--primary-s), calc(var(--primary-l) - 8%), 1);
 		color: #ffffff;
 	}
 }

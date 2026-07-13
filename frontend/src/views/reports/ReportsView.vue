@@ -46,41 +46,41 @@
 			<div class="stat-tile">
 				<div class="stat-tile__body">
 					<span class="stat-tile__label">{{ $t('reports.totalTime') }}</span>
-					<span class="stat-tile__value">{{ formatDuration(timesheet.totalSeconds) }}</span>
+					<span class="stat-tile__icon">
+						<Icon :icon="['far', 'clock']" />
+					</span>
 				</div>
-				<span class="stat-tile__icon">
-					<Icon :icon="['far', 'clock']" />
-				</span>
+				<span class="stat-tile__value">{{ formatDuration(timesheet.totalSeconds) }}</span>
 			</div>
 			<div class="stat-tile">
 				<div class="stat-tile__body">
 					<span class="stat-tile__label">{{ $t('reports.employeesTracked') }}</span>
-					<span class="stat-tile__value">{{ timesheet.rows.length }}</span>
+					<span class="stat-tile__icon">
+						<Icon icon="users" />
+					</span>
 				</div>
-				<span class="stat-tile__icon">
-					<Icon icon="users" />
-				</span>
+				<span class="stat-tile__value">{{ timesheet.rows.length }}</span>
 			</div>
 			<div class="stat-tile stat-tile--danger">
 				<div class="stat-tile__body">
 					<span class="stat-tile__label">{{ $t('reports.lateCompletions') }}</span>
-					<span class="stat-tile__value">{{ lateCompletions.total }}</span>
+					<span class="stat-tile__icon stat-tile__icon--danger">
+						<Icon icon="exclamation" />
+					</span>
 				</div>
-				<span class="stat-tile__icon stat-tile__icon--danger">
-					<Icon icon="exclamation" />
-				</span>
+				<span class="stat-tile__value">{{ lateCompletions.total }}</span>
 			</div>
 			<div class="stat-tile">
 				<div class="stat-tile__body">
 					<span class="stat-tile__label">{{ $t('reports.estVsActual') }}</span>
-					<span
-						class="stat-tile__value"
-						:class="{'is-over': variancePercent !== null && variancePercent > 0}"
-					>{{ variancePercent === null ? '—' : formatVariance(variancePercent) }}</span>
+					<span class="stat-tile__icon">
+						<Icon icon="chart-line" />
+					</span>
 				</div>
-				<span class="stat-tile__icon">
-					<Icon icon="chart-line" />
-				</span>
+				<span
+					class="stat-tile__value"
+					:class="{'is-over': variancePercent !== null && variancePercent > 0}"
+				>{{ variancePercent === null ? '—' : formatVariance(variancePercent) }}</span>
 			</div>
 		</div>
 
@@ -501,13 +501,13 @@ onMounted(() => {
 
 .stat-tile {
 	display: flex;
-	align-items: center;
+	flex-direction: column;
 	justify-content: space-between;
 	gap: 1rem;
-	padding: 1.25rem;
+	padding: 1.5rem;
 	background: var(--white);
 	border: 1px solid var(--card-border-color);
-	border-radius: 8px;
+	border-radius: 12px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, .03);
 
 	&--danger {
@@ -516,20 +516,21 @@ onMounted(() => {
 
 	&__body {
 		display: flex;
-		flex-direction: column;
-		gap: .35rem;
-		min-inline-size: 0;
+		align-items: center;
+		justify-content: space-between;
+		gap: .75rem;
 	}
 
 	&__label {
 		font-size: .72rem;
+		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: .06em;
 		color: var(--grey-500);
 	}
 
 	&__value {
-		font-size: 1.7rem;
+		font-size: 2.25rem;
 		font-weight: 700;
 		color: var(--grey-900);
 		line-height: 1;
@@ -538,12 +539,12 @@ onMounted(() => {
 	&__icon {
 		display: grid;
 		place-items: center;
-		inline-size: 2.5rem;
-		block-size: 2.5rem;
-		border-radius: 999px;
-		background: hsla(var(--primary-hsl), .1);
-		color: var(--primary);
-		font-size: 1.1rem;
+		inline-size: 2rem;
+		block-size: 2rem;
+		border-radius: 6px;
+		background: var(--grey-50);
+		color: var(--grey-500);
+		font-size: 1rem;
 		flex-shrink: 0;
 
 		&--danger {
@@ -556,6 +557,7 @@ onMounted(() => {
 .reports-section {
 	padding: 1.25rem 1.5rem 1.5rem;
 	margin-block-end: 1.5rem;
+	border-radius: 12px;
 
 	&__head {
 		display: flex;

@@ -62,6 +62,18 @@
 		</div>
 
 		<div class="navbar-end">
+			<BaseButton
+				class="color-scheme-toggle"
+				:class="{'is-dark': isDark}"
+				role="switch"
+				:aria-checked="isDark"
+				:aria-label="$t(isDark ? 'user.settings.appearance.colorScheme.light' : 'user.settings.appearance.colorScheme.dark')"
+				@click="toggleColorScheme"
+			>
+				<span class="color-scheme-toggle__knob">
+					<Icon :icon="isDark ? 'moon' : 'sun'" />
+				</span>
+			</BaseButton>
 			<TimerBadge />
 			<OpenQuickActions />
 			<Notifications />
@@ -151,6 +163,7 @@ import { isEditorContentEmpty } from '@/helpers/editorContentEmpty'
 import { useBaseStore } from '@/stores/base'
 import { useConfigStore } from '@/stores/config'
 import { useAuthStore } from '@/stores/auth'
+import { useColorScheme } from '@/composables/useColorScheme'
 import type { IProject } from '@/modelTypes/IProject'
 
 const baseStore = useBaseStore()
@@ -177,6 +190,20 @@ const configStore = useConfigStore()
 const imprintUrl = computed(() => configStore.legal.imprintUrl)
 const privacyPolicyUrl = computed(() => configStore.legal.privacyPolicyUrl)
 const adminPanelEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL))
+
+const { isDark } = useColorScheme()
+async function toggleColorScheme() {
+	await authStore.saveUserSettings({
+		settings: {
+			...authStore.settings,
+			frontendSettings: {
+				...authStore.settings.frontendSettings,
+				colorSchema: isDark.value ? 'light' : 'dark',
+			},
+		},
+		showMessage: false,
+	})
+}
 </script>
 
 <style lang="scss" scoped>
@@ -198,7 +225,8 @@ $user-dropdown-width-mobile: 5rem;
 	gap: var(--navbar-gap-width);
 	min-block-size: $navbar-height;
 
-	background: var(--site-background);
+	background: var(--white);
+	border-block-end: 1px solid var(--grey-200);
 
 	@media screen and (min-width: $tablet) {
 		padding-inline-start: 2rem;
@@ -292,6 +320,39 @@ $user-dropdown-width-mobile: 5rem;
 
 	>* {
 		min-inline-size: var(--navbar-button-min-width);
+	}
+}
+
+.color-scheme-toggle {
+	--track-inline-size: 3.25rem;
+	--track-block-size: 1.75rem;
+	--knob-size: 1.4rem;
+
+	align-self: center;
+	display: inline-flex;
+	align-items: center;
+	inline-size: var(--track-inline-size);
+	block-size: var(--track-block-size);
+	padding: .15rem;
+	border-radius: 999px;
+	background: var(--warning, #f7d774);
+	transition: background-color $transition;
+
+	&.is-dark {
+		background: var(--grey-300);
+		justify-content: flex-end;
+	}
+
+	&__knob {
+		display: grid;
+		place-items: center;
+		inline-size: var(--knob-size);
+		block-size: var(--knob-size);
+		border-radius: 50%;
+		background: var(--white);
+		color: var(--grey-700);
+		font-size: .8rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
 	}
 }
 

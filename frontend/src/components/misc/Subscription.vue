@@ -44,7 +44,7 @@ import SubscriptionModel from '@/models/subscription'
 import type {ISubscription} from '@/modelTypes/ISubscription'
 
 import {success} from '@/message'
-import type { IconProp } from '@fortawesome/fontawesome-svg-core'
+import type {IconName} from '@/components/misc/Icon'
 
 const props = withDefaults(defineProps<{
 	modelValue: ISubscription | null,
@@ -91,7 +91,7 @@ const tooltipText = computed(() => {
 })
 
 const buttonText = computed(() => props.modelValue ? t('task.subscription.unsubscribe') : t('task.subscription.subscribe'))
-const iconName = computed<IconProp>(() => props.modelValue ? ['far', 'bell-slash'] : 'bell')
+const iconName = computed<IconName>(() => props.modelValue ? ['far', 'bell-slash'] : 'bell')
 const disabled = computed(() => props.modelValue && subscriptionEntity.value !== props.entity || false)
 
 function changeSubscription() {
