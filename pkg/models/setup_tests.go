@@ -80,6 +80,13 @@ func SetupTests() {
 		"totp",
 		"oauth_codes",
 		"notifications",
+		// Thirty Six Toyota custom features (empty fixtures for test isolation)
+		"folders",
+		"documents",
+		"conversations",
+		"conversation_members",
+		"chat_messages",
+		"notes",
 	)
 	if err != nil {
 		log.Fatal(err)

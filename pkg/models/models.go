@@ -72,6 +72,13 @@ func GetTables() []interface{} {
 		&Session{},
 		&OAuthCode{},
 		&TimeEntry{},
+		// Thirty Six Toyota custom features
+		&Folder{},
+		&Document{},
+		&Conversation{},
+		&ConversationMember{},
+		&ChatMessage{},
+		&Note{},
 	}
 }
 
