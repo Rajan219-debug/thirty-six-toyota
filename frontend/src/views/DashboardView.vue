@@ -1,11 +1,16 @@
 <template>
 	<div class="tst-dash">
-		<header class="tst-dash__head">
-			<div>
-				<h1 class="tst-dash__title">
-					{{ $t('dashboard.title') }}
+		<header class="tst-hero">
+			<div class="tst-hero__glow" />
+			<div class="tst-hero__content">
+				<p class="tst-hero__kicker">
+					<span class="tst-hero__dot" />
+					{{ greeting }}
+				</p>
+				<h1 class="tst-hero__title">
+					{{ displayName ? `Welcome back, ${displayName}` : $t('dashboard.title') }}
 				</h1>
-				<p class="tst-dash__subtitle">
+				<p class="tst-hero__subtitle">
 					{{ $t('dashboard.subtitle') }}
 				</p>
 			</div>
@@ -201,13 +206,14 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 
 import TaskService, {type IDashboardStats} from '@/services/task'
 import {useTitle} from '@/composables/useTitle'
 import {useCountUp} from '@/composables/useCountUp'
+import {useAuthStore} from '@/stores/auth'
 import {useBaseStore} from '@/stores/base'
 import {TASK_STATUS} from '@/types/ITaskStatus'
 
@@ -222,7 +228,16 @@ useTitle(() => t('dashboard.title'))
 
 const taskService = new TaskService()
 const baseStore = useBaseStore()
+const authStore = useAuthStore()
 const router = useRouter()
+
+const displayName = computed(() => authStore.userDisplayName)
+const greeting = computed(() => {
+	const h = new Date().getHours()
+	if (h < 12) return 'Good morning'
+	if (h < 18) return 'Good afternoon'
+	return 'Good evening'
+})
 
 const loading = ref(true)
 const stats = ref<IDashboardStats>({
@@ -290,22 +305,81 @@ $tst-red: #eb0a1e;
 	margin-inline: auto;
 }
 
-.tst-dash__head {
+.tst-hero {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	border-radius: 16px;
+	padding: 2.25rem;
 	margin-block-end: 1.5rem;
+	background: linear-gradient(120deg, #06172e 0%, #0d2c57 45%, #071f3d 100%);
+	box-shadow: 0 14px 34px rgba(6, 23, 46, .3);
+
+	&__glow {
+		position: absolute;
+		inset: -55%;
+		z-index: 0;
+		background:
+			radial-gradient(38% 38% at 18% 32%, hsla(199, 92%, 56%, .70), transparent 62%),
+			radial-gradient(34% 34% at 82% 20%, hsla(222, 90%, 62%, .55), transparent 62%),
+			radial-gradient(42% 42% at 62% 84%, hsla(280, 82%, 62%, .45), transparent 62%),
+			radial-gradient(30% 30% at 40% 60%, hsla(190, 95%, 60%, .40), transparent 60%);
+		filter: blur(28px) saturate(120%);
+		animation: tst-aurora 18s ease-in-out infinite alternate;
+	}
+
+	&__content {
+		position: relative;
+		z-index: 1;
+	}
+
+	&__kicker {
+		display: inline-flex;
+		align-items: center;
+		gap: .5rem;
+		font-family: $tst-mono-font;
+		font-size: .72rem;
+		font-weight: 700;
+		letter-spacing: .12em;
+		text-transform: uppercase;
+		color: hsl(199, 92%, 82%);
+		margin: 0 0 .5rem;
+	}
+
+	&__dot {
+		inline-size: .5rem;
+		block-size: .5rem;
+		border-radius: 999px;
+		background: #48d1ff;
+		animation: tst-pulse 2.2s ease-out infinite;
+	}
+
+	&__title {
+		font-size: 2.1rem;
+		font-weight: 800;
+		letter-spacing: -.02em;
+		color: #fff;
+		margin: 0;
+		text-shadow: 0 2px 12px rgba(0, 0, 0, .25);
+	}
+
+	&__subtitle {
+		color: hsla(210, 40%, 90%, .82);
+		font-size: .95rem;
+		margin-block-start: .35rem;
+	}
 }
 
-.tst-dash__title {
-	font-size: 2rem;
-	font-weight: 800;
-	letter-spacing: -.02em;
-	color: var(--grey-900);
-	margin: 0;
+@keyframes tst-aurora {
+	0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+	50%  { transform: translate3d(4%, -3%, 0) rotate(10deg) scale(1.12); }
+	100% { transform: translate3d(-3%, 3%, 0) rotate(-8deg) scale(1.06); }
 }
 
-.tst-dash__subtitle {
-	color: var(--grey-500);
-	font-size: .9rem;
-	margin-block-start: .1rem;
+@keyframes tst-pulse {
+	0%   { box-shadow: 0 0 0 0 rgba(72, 209, 255, .6); }
+	70%  { box-shadow: 0 0 0 8px rgba(72, 209, 255, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(72, 209, 255, 0); }
 }
 
 .tst-stats {
@@ -316,6 +390,8 @@ $tst-red: #eb0a1e;
 }
 
 .tst-stat {
+	position: relative;
+	overflow: hidden;
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -327,6 +403,29 @@ $tst-red: #eb0a1e;
 	transition: transform .18s ease, box-shadow .18s ease;
 	animation: tst-rise .5s ease backwards;
 
+	// gradient accent along the top edge
+	&::after {
+		content: '';
+		position: absolute;
+		inset-block-start: 0;
+		inset-inline: 0;
+		block-size: 3px;
+		background: linear-gradient(90deg, var(--primary), hsla(var(--primary-hsl), .25));
+		z-index: 2;
+	}
+
+	// light sheen that sweeps across on hover
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		background: linear-gradient(105deg, transparent 35%, hsla(var(--primary-hsl), .16) 50%, transparent 65%);
+		transform: translateX(-130%);
+		transition: transform .7s ease;
+	}
+
 	&:nth-child(1) { animation-delay: .04s; }
 	&:nth-child(2) { animation-delay: .10s; }
 	&:nth-child(3) { animation-delay: .16s; }
@@ -337,12 +436,18 @@ $tst-red: #eb0a1e;
 		box-shadow: 0 12px 26px rgba(0, 0, 0, .09);
 	}
 
+	&:hover::before { transform: translateX(130%); }
+
 	&--danger {
 		border-inline-start: 4px solid $tst-red;
 		background: rgba(235, 10, 30, .04);
+
+		&::after { background: linear-gradient(90deg, $tst-red, rgba(235, 10, 30, .25)); }
 	}
 
 	&__head {
+		position: relative;
+		z-index: 3;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -363,6 +468,8 @@ $tst-red: #eb0a1e;
 	}
 
 	&__value {
+		position: relative;
+		z-index: 3;
 		font-size: 2rem;
 		font-weight: 800;
 		color: var(--grey-900);
@@ -673,6 +780,13 @@ $tst-red: #eb0a1e;
 	.tst-stat:hover,
 	.tst-panel:hover {
 		transform: none;
+	}
+
+	.tst-stat::before { display: none; }
+
+	.tst-hero__glow,
+	.tst-hero__dot {
+		animation: none;
 	}
 }
 </style>
