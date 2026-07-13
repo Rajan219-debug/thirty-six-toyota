@@ -2765,3 +2765,33 @@ func (err ErrConversationNeedsMembers) HTTPError() web.HTTPError {
 		Message:  "A conversation needs at least one other member.",
 	}
 }
+
+// Notes errors
+// ============
+
+// ErrNoteDoesNotExist represents an error where a note does not exist.
+type ErrNoteDoesNotExist struct {
+	NoteID int64
+}
+
+// IsErrNoteDoesNotExist checks if an error is ErrNoteDoesNotExist.
+func IsErrNoteDoesNotExist(err error) bool {
+	_, ok := err.(ErrNoteDoesNotExist)
+	return ok
+}
+
+func (err ErrNoteDoesNotExist) Error() string {
+	return fmt.Sprintf("Note does not exist [NoteID: %v]", err.NoteID)
+}
+
+// ErrCodeNoteDoesNotExist holds the unique world-error code of this error
+const ErrCodeNoteDoesNotExist = 22001
+
+// HTTPError holds the http error description
+func (err ErrNoteDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeNoteDoesNotExist,
+		Message:  "This note does not exist.",
+	}
+}

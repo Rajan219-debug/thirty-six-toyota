@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, computed} from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {storeToRefs} from 'pinia'
 
@@ -102,11 +102,13 @@ useTitle(() => t('navigation.notes'))
 
 const notesStore = useNotesStore()
 const {notes} = storeToRefs(notesStore)
-const {add, remove, togglePin} = notesStore
+const {load, add, remove, togglePin} = notesStore
+
+onMounted(load)
 
 const sortedNotes = computed(() => [...notes.value].sort((a, b) => {
 	if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
-	return b.updated - a.updated
+	return b.updated.getTime() - a.updated.getTime()
 }))
 
 const editing = ref(false)

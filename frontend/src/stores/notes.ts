@@ -1,61 +1,43 @@
-import {ref, watch} from 'vue'
+import {ref} from 'vue'
 import {defineStore, acceptHMRUpdate} from 'pinia'
 
-export interface INote {
-	id: string
-	title: string
-	body: string
-	color: 'amber' | 'mint' | 'lavender'
-	pinned: boolean
-	updated: number
-}
+import NoteService from '@/services/note'
+import type {INote, NoteColor} from '@/modelTypes/INote'
 
-const STORAGE_KEY = 'tst-notes'
-const COLORS: INote['color'][] = ['amber', 'mint', 'lavender']
+const COLORS: NoteColor[] = ['amber', 'mint', 'lavender']
 
-function load(): INote[] {
-	try {
-		return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
-	} catch {
-		return []
-	}
-}
-
-// ponytail: client-only notes (localStorage, no backend) — Taskopad's Notes
-// feature has no Vikunja API equivalent; a synced version needs a real model
-// + endpoint, add if notes need to survive across devices.
+// Notes are persisted server-side (per-user, /api/v2/notes) so they survive
+// across devices and browser resets. Was localStorage-only before.
 export const useNotesStore = defineStore('notes', () => {
-	const notes = ref<INote[]>(load())
+	const notes = ref<INote[]>([])
+	const service = new NoteService()
 
-	watch(notes, value => localStorage.setItem(STORAGE_KEY, JSON.stringify(value)), {deep: true})
-
-	function add(title: string, body: string) {
-		notes.value.unshift({
-			id: crypto.randomUUID(),
-			title,
-			body,
-			color: COLORS[notes.value.length % COLORS.length],
-			pinned: false,
-			updated: Date.now(),
-		})
+	async function load() {
+		notes.value = await service.getAll()
 	}
 
-	function update(id: string, changes: Partial<Pick<INote, 'title' | 'body'>>) {
+	async function add(title: string, body: string) {
+		const color = COLORS[notes.value.length % COLORS.length]
+		const created = await service.create({title, body, color, pinned: false})
+		notes.value.unshift(created)
+	}
+
+	async function remove(id: number) {
 		const note = notes.value.find(n => n.id === id)
 		if (!note) return
-		Object.assign(note, changes, {updated: Date.now()})
-	}
-
-	function remove(id: string) {
+		await service.delete(note)
 		notes.value = notes.value.filter(n => n.id !== id)
 	}
 
-	function togglePin(id: string) {
+	async function togglePin(id: number) {
 		const note = notes.value.find(n => n.id === id)
-		if (note) note.pinned = !note.pinned
+		if (!note) return
+		note.pinned = !note.pinned
+		const updated = await service.update(note)
+		Object.assign(note, updated)
 	}
 
-	return {notes, add, update, remove, togglePin}
+	return {notes, load, add, remove, togglePin}
 })
 
 // support hot reloading
