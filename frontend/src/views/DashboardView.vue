@@ -4,7 +4,6 @@
 			<div class="tst-hero__glow" />
 			<div class="tst-hero__content">
 				<p class="tst-hero__kicker">
-					<span class="tst-hero__dot" />
 					{{ greeting }}
 				</p>
 				<h1 class="tst-hero__title">
@@ -13,6 +12,9 @@
 				<p class="tst-hero__subtitle">
 					{{ $t('dashboard.subtitle') }}
 				</p>
+			</div>
+			<div class="tst-hero__aside">
+				<span class="tst-hero__date">{{ todayLabel }}</span>
 			</div>
 		</header>
 
@@ -238,6 +240,9 @@ const greeting = computed(() => {
 	if (h < 18) return 'Good afternoon'
 	return 'Good evening'
 })
+const todayLabel = computed(() => new Date().toLocaleDateString(undefined, {
+	weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+}))
 
 const loading = ref(true)
 const stats = ref<IDashboardStats>({
@@ -309,23 +314,25 @@ $tst-red: #eb0a1e;
 	position: relative;
 	overflow: hidden;
 	isolation: isolate;
-	border-radius: 16px;
-	padding: 2.25rem;
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 1.5rem;
+	border-radius: 14px;
+	padding: 2rem 2.25rem;
 	margin-block-end: 1.5rem;
-	background: linear-gradient(120deg, #06172e 0%, #0d2c57 45%, #071f3d 100%);
-	box-shadow: 0 14px 34px rgba(6, 23, 46, .3);
+	background: linear-gradient(135deg, #0a1f3c 0%, #0e2a4d 100%);
+	border: 1px solid rgba(255, 255, 255, .06);
+	box-shadow: 0 10px 28px rgba(8, 22, 43, .22);
 
+	// A single, static, monochrome brand wash — corporate, not a light show.
 	&__glow {
 		position: absolute;
-		inset: -55%;
+		inset: 0;
 		z-index: 0;
 		background:
-			radial-gradient(38% 38% at 18% 32%, hsla(199, 92%, 56%, .70), transparent 62%),
-			radial-gradient(34% 34% at 82% 20%, hsla(222, 90%, 62%, .55), transparent 62%),
-			radial-gradient(42% 42% at 62% 84%, hsla(280, 82%, 62%, .45), transparent 62%),
-			radial-gradient(30% 30% at 40% 60%, hsla(190, 95%, 60%, .40), transparent 60%);
-		filter: blur(28px) saturate(120%);
-		animation: tst-aurora 18s ease-in-out infinite alternate;
+			radial-gradient(60% 130% at 90% -20%, hsla(199, 92%, 56%, .26), transparent 60%),
+			radial-gradient(45% 90% at 102% 120%, hsla(212, 90%, 52%, .16), transparent 60%);
 	}
 
 	&__content {
@@ -334,52 +341,46 @@ $tst-red: #eb0a1e;
 	}
 
 	&__kicker {
-		display: inline-flex;
-		align-items: center;
-		gap: .5rem;
 		font-family: $tst-mono-font;
-		font-size: .72rem;
-		font-weight: 700;
-		letter-spacing: .12em;
+		font-size: .7rem;
+		font-weight: 600;
+		letter-spacing: .16em;
 		text-transform: uppercase;
-		color: hsl(199, 92%, 82%);
-		margin: 0 0 .5rem;
-	}
-
-	&__dot {
-		inline-size: .5rem;
-		block-size: .5rem;
-		border-radius: 999px;
-		background: #48d1ff;
-		animation: tst-pulse 2.2s ease-out infinite;
+		color: hsla(199, 80%, 78%, .9);
+		margin: 0 0 .55rem;
 	}
 
 	&__title {
-		font-size: 2.1rem;
-		font-weight: 800;
-		letter-spacing: -.02em;
+		font-size: 1.9rem;
+		font-weight: 700;
+		letter-spacing: -.015em;
 		color: #fff;
 		margin: 0;
-		text-shadow: 0 2px 12px rgba(0, 0, 0, .25);
 	}
 
 	&__subtitle {
-		color: hsla(210, 40%, 90%, .82);
-		font-size: .95rem;
-		margin-block-start: .35rem;
+		color: hsla(210, 30%, 86%, .7);
+		font-size: .9rem;
+		margin-block-start: .3rem;
 	}
-}
 
-@keyframes tst-aurora {
-	0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-	50%  { transform: translate3d(4%, -3%, 0) rotate(10deg) scale(1.12); }
-	100% { transform: translate3d(-3%, 3%, 0) rotate(-8deg) scale(1.06); }
-}
+	&__aside {
+		position: relative;
+		z-index: 1;
+		flex-shrink: 0;
+	}
 
-@keyframes tst-pulse {
-	0%   { box-shadow: 0 0 0 0 rgba(72, 209, 255, .6); }
-	70%  { box-shadow: 0 0 0 8px rgba(72, 209, 255, 0); }
-	100% { box-shadow: 0 0 0 0 rgba(72, 209, 255, 0); }
+	&__date {
+		font-family: $tst-mono-font;
+		font-size: .75rem;
+		letter-spacing: .02em;
+		color: hsla(210, 30%, 82%, .72);
+		white-space: nowrap;
+	}
+
+	@media screen and (width <= 640px) {
+		&__aside { display: none; }
+	}
 }
 
 .tst-stats {
@@ -403,27 +404,16 @@ $tst-red: #eb0a1e;
 	transition: transform .18s ease, box-shadow .18s ease;
 	animation: tst-rise .5s ease backwards;
 
-	// gradient accent along the top edge
+	// hairline brand accent along the top edge
 	&::after {
 		content: '';
 		position: absolute;
 		inset-block-start: 0;
 		inset-inline: 0;
-		block-size: 3px;
-		background: linear-gradient(90deg, var(--primary), hsla(var(--primary-hsl), .25));
+		block-size: 2px;
+		background: var(--primary);
+		opacity: .8;
 		z-index: 2;
-	}
-
-	// light sheen that sweeps across on hover
-	&::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-		pointer-events: none;
-		background: linear-gradient(105deg, transparent 35%, hsla(var(--primary-hsl), .16) 50%, transparent 65%);
-		transform: translateX(-130%);
-		transition: transform .7s ease;
 	}
 
 	&:nth-child(1) { animation-delay: .04s; }
@@ -432,17 +422,15 @@ $tst-red: #eb0a1e;
 	&:nth-child(4) { animation-delay: .22s; }
 
 	&:hover {
-		transform: translateY(-3px);
-		box-shadow: 0 12px 26px rgba(0, 0, 0, .09);
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(0, 0, 0, .07);
 	}
-
-	&:hover::before { transform: translateX(130%); }
 
 	&--danger {
 		border-inline-start: 4px solid $tst-red;
 		background: rgba(235, 10, 30, .04);
 
-		&::after { background: linear-gradient(90deg, $tst-red, rgba(235, 10, 30, .25)); }
+		&::after { background: $tst-red; }
 	}
 
 	&__head {
@@ -490,16 +478,14 @@ $tst-red: #eb0a1e;
 		inline-size: 2.25rem;
 		block-size: 2.25rem;
 		border-radius: 8px;
-		background: linear-gradient(135deg, hsla(var(--primary-hsl), .18), hsla(var(--primary-hsl), .06));
+		background: hsla(var(--primary-hsl), .10);
 		color: var(--primary);
 		font-size: 1rem;
 		flex-shrink: 0;
-		box-shadow: 0 4px 10px hsla(var(--primary-hsl), .18);
 
 		&--danger {
-			background: linear-gradient(135deg, rgba(235, 10, 30, .18), rgba(235, 10, 30, .06));
+			background: rgba(235, 10, 30, .10);
 			color: $tst-red;
-			box-shadow: 0 4px 10px rgba(235, 10, 30, .18);
 		}
 	}
 }
@@ -780,13 +766,6 @@ $tst-red: #eb0a1e;
 	.tst-stat:hover,
 	.tst-panel:hover {
 		transform: none;
-	}
-
-	.tst-stat::before { display: none; }
-
-	.tst-hero__glow,
-	.tst-hero__dot {
-		animation: none;
 	}
 }
 </style>
