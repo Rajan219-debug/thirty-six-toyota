@@ -1,20 +1,46 @@
-version: '3'
+# Thirty Six Toyota — reproducible production stack.
+#   docker compose up -d --build
+# Builds the branded image from ./Dockerfile and runs it against Postgres.
+# Override the defaults below via a .env file or the shell before deploying.
 
 services:
   vikunja:
-    image: vikunja/vikunja:latest
-    user: "0:0"
+    build:
+      context: .
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
+    image: thirtysixtoyota/vikunja:latest
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      VIKUNJA_SERVICE_JWTSECRET: a-random-secret-change-me
-      VIKUNJA_SERVICE_FRONTENDURL: http://localhost:3456
-      VIKUNJA_SERVICE_PUBLICURL: http://localhost:3456
-      VIKUNJA_DATABASE_TYPE: sqlite
-      VIKUNJA_DATABASE_PATH: /db/vikunja.db
+      VIKUNJA_DATABASE_TYPE: postgres
+      VIKUNJA_DATABASE_HOST: db
+      VIKUNJA_DATABASE_USER: vikunja
+      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
+      VIKUNJA_DATABASE_DATABASE: vikunja
+      VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWT_SECRET:-change-me-in-production}
+      VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
+      VIKUNJA_SERVICE_FRONTENDURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
     ports:
-      - "3456:3456"
+      - "${VIKUNJA_PORT:-3456}:3456"
     volumes:
-      - vikunja-db:/db
       - vikunja-files:/app/vikunja/files
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vikunja
+      POSTGRES_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
+      POSTGRES_DB: vikunja
+    volumes:
+      - vikunja-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vikunja -d vikunja"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
 volumes:

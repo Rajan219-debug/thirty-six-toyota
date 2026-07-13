@@ -1,61 +1,47 @@
-# syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
-FROM --platform=$BUILDPLATFORM node:24.18.0-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS frontendbuilder
+# syntax=docker/dockerfile:1
 
+# ── Frontend: build the SPA that gets embedded into the binary ─────────
+FROM node:24.18.0-alpine AS frontend
 WORKDIR /build
-
-ENV PNPM_CACHE_FOLDER=.cache/pnpm/
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV CYPRESS_INSTALL_BINARY=0
-
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    CYPRESS_INSTALL_BINARY=0
 COPY frontend/pnpm-lock.yaml frontend/package.json frontend/pnpm-workspace.yaml ./
-RUN npm install -g corepack && corepack enable && \
-    pnpm install --frozen-lockfile
+RUN npm install -g corepack && corepack enable && pnpm install --frozen-lockfile
 COPY frontend/ ./
 ARG RELEASE_VERSION=dev
-RUN echo "{\"VERSION\": \"${RELEASE_VERSION/-g/-}\"}" > src/version.json && pnpm run build
+RUN echo "{\"VERSION\": \"${RELEASE_VERSION}\"}" > src/version.json && pnpm run build
 
-FROM --platform=$BUILDPLATFORM ghcr.io/techknowlogick/xgo:go-1.26.x@sha256:9887b39978a660e2b6ba01eff47a1414f2a8f92743fc4201d6c4599c35e7b45e AS apibuilder
-
-RUN go install github.com/magefile/mage@latest && \
-    mv /go/bin/mage /usr/local/go/bin
-
-WORKDIR /go/src/code.vikunja.io/api
+# ── Backend: embed dist and build one static, CGO-free binary ─────────
+# Postgres is the deployment target (see docker-compose.yml), so no sqlite/
+# cgo is needed — a static build keeps the runtime image tiny and portable.
+FROM golang:1.26 AS backend
+WORKDIR /src
+COPY go.mod go.sum ./
+# Cache mounts keep modules and build cache across builds, so a flaky module
+# download doesn't force a full re-fetch on retry.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 COPY . ./
-COPY --from=frontendbuilder /build/dist ./frontend/dist
+COPY --from=frontend /build/dist ./frontend/dist
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /vikunja .
 
-ARG TARGETOS TARGETARCH TARGETVARIANT RELEASE_VERSION
-ENV RELEASE_VERSION=$RELEASE_VERSION
-
-RUN export PATH=$PATH:$GOPATH/bin && \
-	mage build:clean && \
-    (cd build && mage release:xgo vikunja "${TARGETOS}/${TARGETARCH}/${TARGETVARIANT}")
-
-RUN mkdir -p /tmp && chmod 1777 /tmp
-
-#  ┬─┐┬ ┐┌┐┐┌┐┐┬─┐┬─┐
-#  │┬┘│ │││││││├─ │┬┘
-#  ┘└┘┘─┘┘└┘┘└┘┴─┘┘└┘
-
-# The actual image
-FROM scratch
-
-LABEL org.opencontainers.image.authors='maintainers@vikunja.io'
-LABEL org.opencontainers.image.url='https://vikunja.io'
-LABEL org.opencontainers.image.documentation='https://vikunja.io/docs'
-LABEL org.opencontainers.image.source='https://code.vikunja.io/vikunja'
-LABEL org.opencontainers.image.licenses='AGPLv3'
-LABEL org.opencontainers.image.title='Vikunja'
-
+# ── Runtime: minimal, non-root ────────────────────────────────────────
+# TLS certs and timezone data are copied from the build stage rather than
+# installed via apk, so the runtime layer needs no network. busybox (bundled
+# with alpine) provides adduser and the wget used by the healthcheck.
+FROM alpine:3.20
+LABEL org.opencontainers.image.title="Thirty Six Toyota"
+LABEL org.opencontainers.image.description="Task accountability platform for Thirty Six Toyota dealerships"
+COPY --from=backend /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=backend /usr/share/zoneinfo /usr/share/zoneinfo
+RUN adduser -D -u 1000 vikunja
 WORKDIR /app/vikunja
-ENTRYPOINT [ "/app/vikunja/vikunja" ]
-EXPOSE 3456
-
-COPY --from=apibuilder --chown=1000:1000 --chmod=1777 /tmp /tmp
-
-USER 1000
-
+COPY --from=backend /vikunja /app/vikunja/vikunja
+USER vikunja
 ENV VIKUNJA_SERVICE_ROOTPATH=/app/vikunja/
-ENV VIKUNJA_DATABASE_PATH=/db/vikunja.db
-
-COPY --from=apibuilder /build/vikunja-* vikunja
-COPY --from=apibuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+EXPOSE 3456
+HEALTHCHECK --interval=30s --timeout=5s --start-period=25s \
+    CMD wget -qO- http://localhost:3456/api/v1/info || exit 1
+ENTRYPOINT ["/app/vikunja/vikunja"]
