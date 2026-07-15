@@ -258,7 +258,7 @@ func documentsUpload(ctx context.Context, in *documentUploadInput) (*documentUpl
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	formFiles := in.RawBody.Data().Files
@@ -295,7 +295,7 @@ func documentsDownload(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	doc, err := models.LoadDocumentForDownload(s, a, in.DocumentID)

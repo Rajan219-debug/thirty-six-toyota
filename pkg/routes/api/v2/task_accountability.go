@@ -142,7 +142,7 @@ func tasksInformAssigner(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	t := &models.Task{ID: in.ID}
@@ -205,7 +205,7 @@ func tasksApproveClosure(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	t := &models.Task{ID: in.ID}
@@ -284,7 +284,7 @@ func tasksRejectClosure(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	t := &models.Task{ID: in.ID}
@@ -355,7 +355,7 @@ func tasksDisputeRejection(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	t := &models.Task{ID: in.ID}
@@ -429,7 +429,7 @@ func tasksPrioritized(ctx context.Context, _ *struct{}) (*prioritizedTasksBody, 
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	var assigneeRows []*models.TaskAssginee

@@ -77,6 +77,17 @@ func InitEngines() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	err = db.EnsureTenantColumns()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	// Arm RLS enforcement (no-op unless VIKUNJA_MULTITENANCY_ENFORCE=1).
+	err = db.ArmTenantRLS()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 }
 
 // FullInitWithoutAsync does a full init without any async handlers (cron or events)

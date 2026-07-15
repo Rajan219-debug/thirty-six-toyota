@@ -151,7 +151,7 @@ func init() { AddRouteRegistrar(RegisterReportRoutes) }
 // buildTimesheetReport runs the shared session/permission plumbing for both the
 // JSON and CSV timesheet handlers.
 func buildTimesheetReport(a web.Auth, w reportWindow, userID, projectID int64) (*models.TimesheetReport, error) {
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetTimesheetReport(s, a, nilIfZero(w.Start), nilIfZero(w.End), userID, projectID)
 	if err != nil {
@@ -223,7 +223,7 @@ func reportsLateCompletions(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, err
 	}
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetLateCompletionReport(s, a, nilIfZero(in.Start), nilIfZero(in.End))
 	if err != nil {
@@ -243,7 +243,7 @@ func reportsLateCompletionsCSV(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, err
 	}
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetLateCompletionReport(s, a, nilIfZero(in.Start), nilIfZero(in.End))
 	if err != nil {
@@ -276,7 +276,7 @@ func reportsLateCompletionsCSV(ctx context.Context, in *struct {
 // buildDepartmentEstimateReport runs the shared session/permission plumbing for
 // both the JSON and CSV department-estimate handlers.
 func buildDepartmentEstimateReport(a web.Auth, w reportWindow) (*models.DepartmentEstimateReport, error) {
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetDepartmentEstimateReport(s, a, nilIfZero(w.Start), nilIfZero(w.End))
 	if err != nil {

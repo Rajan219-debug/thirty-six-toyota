@@ -16,9 +16,14 @@ services:
     environment:
       VIKUNJA_DATABASE_TYPE: postgres
       VIKUNJA_DATABASE_HOST: db
-      VIKUNJA_DATABASE_USER: vikunja
-      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
+      # Connect as the NON-SUPERUSER app role (created by the db init script).
+      # A superuser would bypass Row-Level Security, defeating outlet isolation.
+      VIKUNJA_DATABASE_USER: vikunja_app
+      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_APP_DB_PASSWORD:-vikunja_app}
       VIKUNJA_DATABASE_DATABASE: vikunja
+      # Multi-outlet isolation. Off by default (app behaves single-outlet). Set to
+      # 1 only once every request path binds a tenant — see the multitenancy plan.
+      VIKUNJA_MULTITENANCY_ENFORCE: ${VIKUNJA_MULTITENANCY_ENFORCE:-0}
       VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWT_SECRET:-change-me-in-production}
       VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
       VIKUNJA_SERVICE_FRONTENDURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
@@ -34,8 +39,12 @@ services:
       POSTGRES_USER: vikunja
       POSTGRES_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
       POSTGRES_DB: vikunja
+      # Password for the non-superuser app role created by the init script.
+      VIKUNJA_APP_DB_PASSWORD: ${VIKUNJA_APP_DB_PASSWORD:-vikunja_app}
     volumes:
       - vikunja-db:/var/lib/postgresql/data
+      # Runs once on first init: creates the non-superuser vikunja_app role.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vikunja -d vikunja"]
       interval: 5s

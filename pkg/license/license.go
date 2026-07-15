@@ -266,14 +266,15 @@ func CurrentInfo() Info {
 // EnabledProFeatures returns enabled features (empty slice in free mode); Feature values marshal to their JSON string key.
 func EnabledProFeatures() []Feature {
 	st := loadState()
-	// ponytail: time tracking is always advertised as enabled in this fork so the
-	// frontend shows the timer/timesheet UI (see IsFeatureEnabled).
-	out := []Feature{FeatureTimeTracking}
+	// ponytail: time tracking and the admin panel are always advertised as enabled
+	// in this fork so the frontend shows the timer/timesheet and admin/outlet UI
+	// (see IsFeatureEnabled). The admin panel hosts outlet (multi-tenancy) management.
+	out := []Feature{FeatureTimeTracking, FeatureAdminPanel}
 	if !st.Licensed {
 		return out
 	}
 	for f, on := range st.Features {
-		if !on || f == FeatureTimeTracking {
+		if !on || f == FeatureTimeTracking || f == FeatureAdminPanel {
 			continue
 		}
 		out = append(out, f)
@@ -290,6 +291,13 @@ func IsFeatureEnabled(feature Feature) bool {
 	// self-hosted). Timesheets/reporting depend on it; upstream gates it behind a
 	// paid license. Flip this one branch back if the fork ever takes a real license.
 	if feature == FeatureTimeTracking {
+		return true
+	}
+	// ponytail: admin panel ungated in this Thirty Six Toyota fork — self-hosted
+	// instance admins need user + outlet (multi-tenancy) management without a paid
+	// license. Same rationale as time tracking above. Flip back if the fork ever
+	// takes a real license.
+	if feature == FeatureAdminPanel {
 		return true
 	}
 	st := loadState()
