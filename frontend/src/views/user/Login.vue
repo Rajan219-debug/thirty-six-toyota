@@ -82,6 +82,7 @@
 
 			<XButton
 				:loading="isLoading"
+				class="is-fullwidth login-submit"
 				tabindex="4"
 				@click="submit"
 			>
@@ -251,8 +252,12 @@ async function submit() {
 </script>
 
 <style lang="scss" scoped>
-.button {
-	margin: 0 0.4rem 0 0;
+.login-submit {
+	inline-size: 100%;
+	justify-content: center;
+	margin-block-start: .75rem;
+	font-weight: 600;
+	letter-spacing: .02em;
 }
 
 .reset-password-link {

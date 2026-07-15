@@ -17,6 +17,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"code.vikunja.io/api/pkg/db"
@@ -36,6 +37,8 @@ type Tenant struct {
 	Name string `xorm:"varchar(250) not null" json:"name" valid:"length(1|250)" minLength:"1" maxLength:"250" doc:"The display name of the outlet."`
 	// A short unique slug for the outlet, e.g. "faridabad".
 	Slug string `xorm:"varchar(100) not null unique" json:"slug" valid:"length(1|100)" minLength:"1" maxLength:"100" doc:"A short, unique slug for the outlet."`
+	// IsDefault marks the outlet new users are created in. Exactly one is set.
+	IsDefault bool `xorm:"is_default" json:"is_default" readOnly:"true" doc:"Whether this is the default outlet new users are created in."`
 
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true"`
 	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true"`
@@ -57,6 +60,64 @@ func GetAllTenants(s *xorm.Session) (tenants []*Tenant, err error) {
 func CreateTenant(s *xorm.Session, t *Tenant) error {
 	_, err := s.Insert(t)
 	return err
+}
+
+// SetDefaultOutlet makes the given outlet the one new users are created in,
+// repointing the tenant_id column defaults to it. Exactly one outlet is ever the
+// default, so this is also the prerequisite for deleting the previous default.
+func SetDefaultOutlet(s *xorm.Session, id int64) error {
+	exists, err := s.ID(id).Exist(&Tenant{})
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ErrInvalidData{Message: "outlet does not exist"}
+	}
+	// Flip the flag to this outlet only, in one statement.
+	if _, err := s.Exec("UPDATE tenants SET is_default = (id = ?)", id); err != nil {
+		return err
+	}
+	return db.SetTenantColumnDefault(s, id)
+}
+
+// DeleteTenant removes an outlet. It refuses to delete the current default outlet
+// (set another as default first) or one that still has users or data — the
+// tenant_id foreign keys block the latter, surfaced here as a clear message
+// instead of a raw DB error.
+func DeleteTenant(s *xorm.Session, id int64) error {
+	var t Tenant
+	found, err := s.ID(id).Get(&t)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return ErrInvalidData{Message: "outlet not found"}
+	}
+	if t.IsDefault {
+		return ErrInvalidData{Message: "this is the default outlet — set another outlet as the default first, then delete this one"}
+	}
+
+	hasUsers, err := s.Table("users").Where("tenant_id = ?", id).Exist()
+	if err != nil {
+		return err
+	}
+	if hasUsers {
+		return ErrInvalidData{Message: "this outlet still has users assigned — reassign them to another outlet first"}
+	}
+
+	affected, err := s.ID(id).Delete(&Tenant{})
+	if err != nil {
+		// A foreign-key violation means some outlet data (projects, tasks, …)
+		// still references it.
+		if strings.Contains(err.Error(), "foreign key") || strings.Contains(err.Error(), "23503") {
+			return ErrInvalidData{Message: "this outlet still has data (projects, tasks, …) and cannot be deleted while in use"}
+		}
+		return err
+	}
+	if affected == 0 {
+		return ErrInvalidData{Message: "outlet not found"}
+	}
+	return nil
 }
 
 // SetUserOutlet assigns a user to an outlet and sets their HQ flag (HQ users

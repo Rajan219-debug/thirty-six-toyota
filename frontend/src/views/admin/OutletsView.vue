@@ -15,6 +15,7 @@
 							<th>ID</th>
 							<th>Name</th>
 							<th>Slug</th>
+							<th />
 						</tr>
 					</thead>
 					<tbody>
@@ -25,6 +26,28 @@
 							<td>{{ o.id }}</td>
 							<td>{{ o.name }}</td>
 							<td><code>{{ o.slug }}</code></td>
+							<td class="outlets__actions">
+								<span
+									v-if="o.is_default"
+									class="outlets__default-tag"
+								>default</span>
+								<template v-else>
+									<button
+										type="button"
+										class="outlets__make-default"
+										@click="makeDefault(o)"
+									>
+										Make default
+									</button>
+									<button
+										type="button"
+										class="outlets__delete"
+										@click="deleteOutlet(o)"
+									>
+										Delete
+									</button>
+								</template>
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -134,6 +157,32 @@ async function createOutlet() {
 	}
 }
 
+async function makeDefault(o: ITenant) {
+	if (!window.confirm(`Make "${o.name}" the default outlet? New users will be created here.`)) {
+		return
+	}
+	try {
+		await service.setDefault(o.id)
+		success({message: `${o.name} is now the default outlet.`})
+		await load()
+	} catch (e) {
+		error(e)
+	}
+}
+
+async function deleteOutlet(o: ITenant) {
+	if (!window.confirm(`Delete outlet "${o.name}"? This can't be undone.`)) {
+		return
+	}
+	try {
+		await service.delete(o.id)
+		success({message: 'Outlet deleted.'})
+		await load()
+	} catch (e) {
+		error(e)
+	}
+}
+
 async function assignUser() {
 	if (!assignUserId.value || !assignOutletId.value) {
 		return
@@ -166,6 +215,52 @@ onMounted(load)
 	text-align: start;
 	padding: 0.5rem 0.75rem;
 	border-block-end: 1px solid var(--grey-200);
+}
+
+.outlets__actions {
+	text-align: end;
+	white-space: nowrap;
+}
+
+.outlets__make-default {
+	padding: 0.3rem 0.8rem;
+	margin-inline-end: 0.4rem;
+	background: transparent;
+	color: var(--primary);
+	border: 1px solid var(--primary);
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	transition: background 0.15s, color 0.15s;
+}
+
+.outlets__make-default:hover {
+	background: var(--primary);
+	color: #fff;
+}
+
+.outlets__delete {
+	padding: 0.3rem 0.8rem;
+	background: transparent;
+	color: #c0392b;
+	border: 1px solid #e0b4ae;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.outlets__delete:hover {
+	background: #c0392b;
+	color: #fff;
+	border-color: #c0392b;
+}
+
+.outlets__default-tag {
+	font-size: 0.72rem;
+	color: var(--grey-500);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
 }
 
 .outlets__subtitle {

@@ -5,6 +5,7 @@ export interface ITenant {
 	id: number
 	name: string
 	slug: string
+	is_default: boolean
 	created: string
 	updated: string
 }
@@ -24,6 +25,14 @@ export default class TenantService extends AbstractService<ITenant> {
 	async create(body: {name: string, slug: string}): Promise<ITenant> {
 		const {data} = await this.http.post(apiV2Url('admin/tenants'), body)
 		return data as ITenant
+	}
+
+	async delete(id: number): Promise<void> {
+		await this.http.delete(apiV2Url(`admin/tenants/${id}`))
+	}
+
+	async setDefault(id: number): Promise<void> {
+		await this.http.patch(apiV2Url(`admin/tenants/${id}/default`))
 	}
 
 	async assignUserOutlet(userId: number, tenantId: number, isHQ: boolean) {

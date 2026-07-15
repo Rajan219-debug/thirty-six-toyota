@@ -79,6 +79,24 @@ func RegisterAdminTenantRoutes(api huma.API) {
 	}, adminTenantsCreate)
 
 	Register(api, huma.Operation{
+		OperationID: "admin-tenants-set-default",
+		Summary:     "Set the default outlet",
+		Description: "Makes this outlet the one new users are created in. Doing so is also required before the previous default can be deleted. Restricted to instance admins.",
+		Method:      http.MethodPatch,
+		Path:        "/admin/tenants/{id}/default",
+		Tags:        tags,
+	}, adminTenantsSetDefault)
+
+	Register(api, huma.Operation{
+		OperationID: "admin-tenants-delete",
+		Summary:     "Delete an outlet",
+		Description: "Deletes an outlet. Refuses if it is the default outlet or still has users or data assigned to it. Restricted to instance admins.",
+		Method:      http.MethodDelete,
+		Path:        "/admin/tenants/{id}",
+		Tags:        tags,
+	}, adminTenantsDelete)
+
+	Register(api, huma.Operation{
 		OperationID: "admin-users-set-outlet",
 		Summary:     "Assign a user to an outlet",
 		Description: "Sets which outlet a user belongs to and whether they are an HQ / group manager (reads across all outlets). Restricted to instance admins.",
@@ -127,6 +145,36 @@ func adminTenantsCreate(_ context.Context, in *struct{ Body createTenantBody }) 
 		return nil, translateDomainError(err)
 	}
 	return &tenantBody{Body: &t}, nil
+}
+
+func adminTenantsSetDefault(_ context.Context, in *struct {
+	ID int64 `path:"id" doc:"The numeric ID of the outlet to make default."`
+}) (*struct{}, error) {
+	s := db.NewSession()
+	defer s.Close()
+	if err := models.SetDefaultOutlet(s, in.ID); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &struct{}{}, nil
+}
+
+func adminTenantsDelete(_ context.Context, in *struct {
+	ID int64 `path:"id" doc:"The numeric ID of the outlet to delete."`
+}) (*struct{}, error) {
+	s := db.NewSession()
+	defer s.Close()
+	if err := models.DeleteTenant(s, in.ID); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &struct{}{}, nil
 }
 
 func adminUsersSetOutlet(_ context.Context, in *struct {

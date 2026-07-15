@@ -500,6 +500,38 @@ func EnsureTenantColumns() error {
 	if _, err := x.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_hq boolean NOT NULL DEFAULT false`); err != nil {
 		return fmt.Errorf("could not add is_hq to users: %w", err)
 	}
+
+	// is_default marks the one outlet new users are created in (the tenant_id
+	// column defaults point at it). Exactly one outlet carries it; seed the
+	// lowest-id outlet if none is marked yet.
+	if _, err := x.Exec(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_default boolean NOT NULL DEFAULT false`); err != nil {
+		return fmt.Errorf("could not add is_default to tenants: %w", err)
+	}
+	if _, err := x.Exec(`UPDATE tenants SET is_default = true
+		WHERE id = (SELECT id FROM tenants ORDER BY id LIMIT 1)
+		AND NOT EXISTS (SELECT 1 FROM tenants WHERE is_default)`); err != nil {
+		return fmt.Errorf("could not seed default outlet flag: %w", err)
+	}
+	return nil
+}
+
+// SetTenantColumnDefault repoints the tenant_id column DEFAULT on every scoped
+// table (and the RLS-exempt users table) to the given outlet, so rows created
+// without a bound tenant land there. Called when the default outlet changes.
+// Postgres only.
+func SetTenantColumnDefault(s *xorm.Session, tenantID int64) error {
+	if Type() != schemas.POSTGRES {
+		return nil
+	}
+	for _, table := range RegisteredTableNames() {
+		if tenantGlobalTables[table] {
+			continue
+		}
+		if _, err := s.Exec(fmt.Sprintf(
+			`ALTER TABLE %q ALTER COLUMN tenant_id SET DEFAULT %d`, table, tenantID)); err != nil {
+			return fmt.Errorf("could not set tenant_id default on %s: %w", table, err)
+		}
+	}
 	return nil
 }
 
