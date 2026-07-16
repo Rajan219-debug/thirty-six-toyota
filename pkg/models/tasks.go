@@ -1205,13 +1205,12 @@ func UserCanApproveOverdueClosure(s *xorm.Session, ot *Task, a web.Auth) (bool, 
 // false and CompletionClaimedAt is stamped so the task moves into
 // "pending_confirmation" instead of closing, while any other field edits in
 // the same payload still go through via the caller's subsequent update.
+// The one exception is DueDate: on an already-overdue task a non-approver's
+// due-date change is forced back too, otherwise clearing/postponing the
+// deadline and then marking done would bypass the approval flow entirely.
 // If the actor IS an authorized approver, the completion is auto-confirmed.
 // Returns true if a closure claim was just recorded.
 func (t *Task) blockOverdueSelfClosure(s *xorm.Session, a web.Auth) (claimedNow bool, err error) {
-	if !t.Done {
-		return false, nil
-	}
-
 	ot, err := GetTaskByIDSimple(s, t.ID)
 	if err != nil {
 		return false, err
@@ -1224,6 +1223,16 @@ func (t *Task) blockOverdueSelfClosure(s *xorm.Session, a web.Auth) (claimedNow 
 	canApprove, err := UserCanApproveOverdueClosure(s, &ot, a)
 	if err != nil {
 		return false, err
+	}
+
+	// Lock the deadline of an overdue task against non-approvers: only someone
+	// who could approve the closure may grant an extension (or clear the date).
+	if !canApprove && !t.DueDate.Equal(ot.DueDate) {
+		t.DueDate = ot.DueDate
+	}
+
+	if !t.Done {
+		return false, nil
 	}
 
 	if canApprove {
