@@ -27,6 +27,17 @@ services:
       VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWT_SECRET:-change-me-in-production}
       VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
       VIKUNJA_SERVICE_FRONTENDURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
+      # Email. Task-assignment, reminders and closure notifications are e-mailed
+      # to staff once this is on. Off by default — set VIKUNJA_MAILER_ENABLED=true
+      # and the host/username/password (Gmail, SendGrid, or the dealership SMTP)
+      # in your .env to switch it on. The assignee gets "You have been assigned
+      # to <task>" the moment a task is assigned to them.
+      VIKUNJA_MAILER_ENABLED: ${VIKUNJA_MAILER_ENABLED:-false}
+      VIKUNJA_MAILER_HOST: ${VIKUNJA_MAILER_HOST:-}
+      VIKUNJA_MAILER_PORT: ${VIKUNJA_MAILER_PORT:-587}
+      VIKUNJA_MAILER_USERNAME: ${VIKUNJA_MAILER_USERNAME:-}
+      VIKUNJA_MAILER_PASSWORD: ${VIKUNJA_MAILER_PASSWORD:-}
+      VIKUNJA_MAILER_FROMEMAIL: ${VIKUNJA_MAILER_FROMEMAIL:-noreply@thirtysixtoyota.com}
     ports:
       - "${VIKUNJA_PORT:-3456}:3456"
     volumes:
