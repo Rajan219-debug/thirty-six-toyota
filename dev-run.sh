@@ -8,6 +8,8 @@
 #   ./dev-run.sh            full rebuild (frontend + backend) + restart
 #   ./dev-run.sh --backend  backend-only change: skip the slow frontend build
 #   ./dev-run.sh --restart  no build, just (re)start the current binary
+#   ./dev-run.sh --mail     also start MailHog + turn email ON (view at :8025)
+#                           (combine, e.g. `./dev-run.sh --restart --mail`)
 #
 # Env overrides: PORT (default 3466), DB (default vikunja_mt_verify).
 set -uo pipefail
@@ -18,7 +20,16 @@ PORT="${PORT:-3466}"
 DB="${DB:-vikunja_mt_verify}"
 PGC="vikunja-verify-pg"
 DOCKER_DESKTOP="/c/Program Files/Docker/Docker/Docker Desktop.exe"
-MODE="${1:-}"
+
+MODE=""
+WANT_MAIL=0
+for arg in "$@"; do
+	case "$arg" in
+		--mail) WANT_MAIL=1 ;;
+		--restart | --backend) MODE="$arg" ;;
+		*) echo "unknown flag: $arg" ; exit 1 ;;
+	esac
+done
 
 log() { echo "[dev-run] $*"; }
 
@@ -40,6 +51,16 @@ fi
 for _ in $(seq 1 20); do docker exec "$PGC" pg_isready -U vikunja >/dev/null 2>&1 && break; sleep 2; done
 log "Postgres ready"
 
+# 2b. MailHog mail-catcher (only with --mail) ------------------------------
+if [ "$WANT_MAIL" = "1" ]; then
+	if ! docker ps --format '{{.Names}}' | grep -q '^mailhog$'; then
+		log "starting MailHog (mail catcher)…"
+		docker start mailhog >/dev/null 2>&1 || docker run -d --name mailhog \
+			-p 1025:1025 -p 8025:8025 mailhog/mailhog >/dev/null
+	fi
+	log "MailHog ready — captured emails at http://localhost:8025"
+fi
+
 # 3. Build -----------------------------------------------------------------
 if [ "$MODE" != "--restart" ]; then
 	if [ "$MODE" != "--backend" ]; then
@@ -52,13 +73,22 @@ fi
 
 # 4. (Re)start -------------------------------------------------------------
 taskkill //IM vikunja-mt-verify.exe //F >/dev/null 2>&1 || true
-log "starting server on :$PORT (db=$DB)…"
-cd "$REPO"
-VIKUNJA_DATABASE_TYPE=postgres VIKUNJA_DATABASE_HOST=localhost:55432 \
+
+export VIKUNJA_DATABASE_TYPE=postgres VIKUNJA_DATABASE_HOST=localhost:55432 \
 	VIKUNJA_DATABASE_USER=vikunja VIKUNJA_DATABASE_PASSWORD=vikunja VIKUNJA_DATABASE_DATABASE="$DB" \
 	VIKUNJA_SERVICE_ROOTPATH="$REPO" VIKUNJA_SERVICE_PUBLICURL="http://localhost:$PORT/" \
-	VIKUNJA_SERVICE_INTERFACE=":$PORT" VIKUNJA_SERVICE_ENABLEREGISTRATION=true \
-	nohup "$BIN" web > "$REPO/dev-run.log" 2>&1 &
+	VIKUNJA_SERVICE_INTERFACE=":$PORT" VIKUNJA_SERVICE_ENABLEREGISTRATION=true
+
+if [ "$WANT_MAIL" = "1" ]; then
+	export VIKUNJA_MAILER_ENABLED=1 VIKUNJA_MAILER_HOST=localhost VIKUNJA_MAILER_PORT=1025 \
+		VIKUNJA_MAILER_USERNAME= VIKUNJA_MAILER_PASSWORD= VIKUNJA_MAILER_SKIPTLSVERIFY=1 \
+		VIKUNJA_MAILER_FORCESSL=false VIKUNJA_MAILER_FROMEMAIL=noreply@thirtysixtoyota.com
+	log "email ON → every task assignment mails the assignee (view at :8025)"
+fi
+
+log "starting server on :$PORT (db=$DB)…"
+cd "$REPO"
+nohup "$BIN" web > "$REPO/dev-run.log" 2>&1 &
 
 for _ in $(seq 1 30); do
 	[ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/api/v1/info" 2>/dev/null)" = "200" ] && break
