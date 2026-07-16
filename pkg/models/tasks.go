@@ -1274,9 +1274,14 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 	// Old task has the stored reminders
 	ot.Reminders = reminders
 
-	// Update the assignees
-	if err := ot.updateTaskAssignees(s, t.Assignees, a); err != nil {
-		return err
+	// Update the assignees only when the caller explicitly passed a list.
+	// Assignees are read-only on the task body (see the struct field) and are
+	// normally managed via the dedicated /assignees endpoints; without this nil
+	// guard every task edit that omits assignees (e.g. marking done) wipes them.
+	if t.Assignees != nil {
+		if err := ot.updateTaskAssignees(s, t.Assignees, a); err != nil {
+			return err
+		}
 	}
 
 	// All columns to update in a separate variable to be able to add to them
