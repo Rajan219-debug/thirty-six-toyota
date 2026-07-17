@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/web"
 )
@@ -57,7 +58,10 @@ func toAttachmentUploadError(err error) AttachmentUploadError {
 		details := httpErr.HTTPError()
 		return AttachmentUploadError{Code: details.Code, Message: details.Message}
 	}
-	return AttachmentUploadError{Message: err.Error()}
+	// Untyped errors here are storage failures (disk, DB) whose text can carry
+	// internal file paths — log the cause, hand the client a generic message.
+	log.Errorf("attachment upload failed: %s", err)
+	return AttachmentUploadError{Message: "Could not save the attachment."}
 }
 
 // WriteAttachmentDownload streams the attachment (or its inline image preview) to

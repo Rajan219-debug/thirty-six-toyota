@@ -200,6 +200,12 @@ func NewEcho() *echo.Echo {
 	// panic recover
 	e.Use(middleware.Recover())
 
+	// Security headers: X-Content-Type-Options: nosniff keeps browsers from
+	// content-sniffing responses into a different (executable) type — the
+	// last layer under the attachment-disposition downloads; X-Frame-Options
+	// blocks clickjacking via framing.
+	e.Use(middleware.Secure())
+
 	// Normalize PHP-style `foo[]=...` query params to `foo=...` before any
 	// handler binds them. Runs globally so both /api/v1 and /api/v2 benefit.
 	e.Use(vmiddleware.NormalizeArrayParams())

@@ -93,12 +93,15 @@ func (bp *BackgroundProvider) SearchBackgrounds(c *echo.Context) error {
 	result, err := p.Search(s, search, page)
 	if err != nil {
 		_ = s.Rollback()
-		return echo.NewHTTPError(http.StatusBadRequest, "An error occurred: "+err.Error()).Wrap(err)
+		// Provider failures (unsplash upstream, DB) carry internal detail —
+		// return the raw error so the global handler renders a generic 500
+		// and the request logger records the full cause.
+		return err
 	}
 
 	if err := s.Commit(); err != nil {
 		_ = s.Rollback()
-		return echo.NewHTTPError(http.StatusBadRequest, "An error occurred: "+err.Error()).Wrap(err)
+		return err
 	}
 
 	return c.JSON(http.StatusOK, result)
