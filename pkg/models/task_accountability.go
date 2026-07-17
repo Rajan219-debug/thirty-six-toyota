@@ -46,6 +46,14 @@ const (
 	// Deadline proximity ramps up over this window; a due date further out than
 	// this contributes ~0, one that's already passed contributes the full 5.
 	priorityDeadlineWindow = 7 * 24 * time.Hour
+
+	// Urgency and importance are rated 1-5; 0 means nobody rated them (the
+	// column defaults to 0 and an update that omits the field resets it). An
+	// unrated input is scored as the neutral middle rather than 0: scoring it 0
+	// would rank an unrated task *below* one explicitly rated lowest (1), and
+	// because deadline proximity alone caps at 0.4*5 = 2.0, an unrated task
+	// could never reach Do Now (>=3.5) no matter how overdue it got.
+	priorityUnratedDefault = 3
 )
 
 // CalculateTaskStatus derives a task's lifecycle status from its done state,
@@ -79,6 +87,13 @@ func CalculateTaskStatus(t *Task) string {
 // importance (both 0-5 inputs), and deadline proximity, and buckets the
 // result into Do Now / Do Soon / Do Later for the prioritized view.
 func CalculatePriorityScore(urgency, importance int64, dueDate time.Time) (score float64, bucket string) {
+	if urgency == 0 {
+		urgency = priorityUnratedDefault
+	}
+	if importance == 0 {
+		importance = priorityUnratedDefault
+	}
+
 	deadlineProximity := 0.0
 	if !dueDate.IsZero() {
 		remaining := time.Until(dueDate)

@@ -105,10 +105,20 @@ func TestCalculateTaskStatus(t *testing.T) {
 }
 
 func TestCalculatePriorityScore(t *testing.T) {
-	t.Run("zero inputs give zero score in do_later", func(t *testing.T) {
+	t.Run("unrated inputs score as the neutral middle, still do_later with no due date", func(t *testing.T) {
+		// Unrated (0) is scored as 3: 0.3*3 + 0.3*3 + 0.4*0 = 1.8 -> do_later
 		score, bucket := CalculatePriorityScore(0, 0, time.Time{})
-		assert.Zero(t, score)
+		assert.InDelta(t, 1.8, score, 0.001)
 		assert.Equal(t, PriorityBucketDoLater, bucket)
+	})
+
+	t.Run("unrated overdue task reaches do_now", func(t *testing.T) {
+		// Regression guard: unrated used to score 0, which capped an overdue
+		// task at 0.4*5 = 2.0 (do_soon), so Do Now could never fill unless
+		// someone hand-rated every task. 0.3*3 + 0.3*3 + 0.4*5 = 3.8 -> do_now
+		score, bucket := CalculatePriorityScore(0, 0, time.Now().Add(-time.Hour))
+		assert.InDelta(t, 3.8, score, 0.001)
+		assert.Equal(t, PriorityBucketDoNow, bucket)
 	})
 
 	t.Run("max urgency and importance without a due date", func(t *testing.T) {
@@ -132,10 +142,10 @@ func TestCalculatePriorityScore(t *testing.T) {
 	})
 
 	t.Run("proximity ramps within the deadline window", func(t *testing.T) {
-		// Halfway through the 7-day window: proximity ~2.5, so
-		// 0.3*0 + 0.3*0 + 0.4*2.5 = ~1.0
+		// Halfway through the 7-day window: proximity ~2.5. Unrated inputs
+		// contribute the 1.8 baseline, so 1.8 + 0.4*2.5 = ~2.8
 		score, _ := CalculatePriorityScore(0, 0, time.Now().Add(priorityDeadlineWindow/2))
-		assert.InDelta(t, 1.0, score, 0.01)
+		assert.InDelta(t, 2.8, score, 0.01)
 	})
 
 	t.Run("overdue low-stakes task lands in do_soon", func(t *testing.T) {
