@@ -2766,6 +2766,33 @@ func (err ErrConversationNeedsMembers) HTTPError() web.HTTPError {
 	}
 }
 
+// ErrConversationMemberDoesNotExist represents an error where a conversation is created with a member id that is no user.
+type ErrConversationMemberDoesNotExist struct {
+	UserID int64
+}
+
+// IsErrConversationMemberDoesNotExist checks if an error is ErrConversationMemberDoesNotExist.
+func IsErrConversationMemberDoesNotExist(err error) bool {
+	_, ok := err.(ErrConversationMemberDoesNotExist)
+	return ok
+}
+
+func (err ErrConversationMemberDoesNotExist) Error() string {
+	return fmt.Sprintf("Conversation member does not exist [UserID: %v]", err.UserID)
+}
+
+// ErrCodeConversationMemberDoesNotExist holds the unique world-error code of this error
+const ErrCodeConversationMemberDoesNotExist = 21003
+
+// HTTPError holds the http error description
+func (err ErrConversationMemberDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeConversationMemberDoesNotExist,
+		Message:  "One of the requested conversation members does not exist.",
+	}
+}
+
 // Notes errors
 // ============
 

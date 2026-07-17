@@ -157,6 +157,17 @@ const (
 	RateLimitLimit             Key = `ratelimit.limit`
 	RateLimitStore             Key = `ratelimit.store`
 	RateLimitNoAuthRoutesLimit Key = `ratelimit.noauthlimit`
+	// Auth-route tier: per-IP window (noauthlimit/noauthperiod) plus per-account
+	// exponential backoff on failed credential attempts. Backoff is always
+	// capped (never a hard lockout) and forgotten after failurereset seconds.
+	RateLimitNoAuthRoutesPeriod Key = `ratelimit.noauthperiod`
+	RateLimitAuthFreeAttempts   Key = `ratelimit.authfreeattempts`
+	RateLimitAuthBackoffBase    Key = `ratelimit.authbackoffbase`
+	RateLimitAuthBackoffMax     Key = `ratelimit.authbackoffmax`
+	RateLimitAuthFailureReset   Key = `ratelimit.authfailurereset`
+	// Public tier: unauthenticated non-auth endpoints (docs, info, ws upgrade).
+	RateLimitPublicRoutesLimit  Key = `ratelimit.publiclimit`
+	RateLimitPublicRoutesPeriod Key = `ratelimit.publicperiod`
 
 	FilesBasePath Key = `files.basepath`
 	FilesMaxSize  Key = `files.maxsize`
@@ -450,6 +461,13 @@ func InitDefaultConfig() {
 	RateLimitPeriod.setDefault(60)
 	RateLimitStore.setDefault("memory")
 	RateLimitNoAuthRoutesLimit.setDefault(10)
+	RateLimitNoAuthRoutesPeriod.setDefault(60)
+	RateLimitAuthFreeAttempts.setDefault(3)
+	RateLimitAuthBackoffBase.setDefault(2)
+	RateLimitAuthBackoffMax.setDefault(900)
+	RateLimitAuthFailureReset.setDefault(900)
+	RateLimitPublicRoutesLimit.setDefault(30)
+	RateLimitPublicRoutesPeriod.setDefault(60)
 	// Files
 	FilesBasePath.setDefault("files")
 	FilesMaxSize.setDefault("20MB")

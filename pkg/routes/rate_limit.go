@@ -31,6 +31,31 @@ import (
 	"github.com/ulule/limiter/v3/drivers/store/redis"
 )
 
+// enforceRateLimit consumes one hit from rateLimiter for key, writes the
+// X-RateLimit-* headers and returns a 429 (with Retry-After) once the window
+// budget is exhausted.
+func enforceRateLimit(c *echo.Context, rateLimiter *limiter.Limiter, key string) error {
+	limiterCtx, err := rateLimiter.Get(c.Request().Context(), key)
+	if err != nil {
+		log.Errorf("IPRateLimit - rateLimiter.Get - err: %v, %s on %s", err, key, c.Request().URL)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error").Wrap(err)
+	}
+
+	h := c.Response().Header()
+	h.Set("X-RateLimit-Limit", strconv.FormatInt(limiterCtx.Limit, 10))
+	h.Set("X-RateLimit-Remaining", strconv.FormatInt(limiterCtx.Remaining, 10))
+	h.Set("X-RateLimit-Reset", strconv.FormatInt(limiterCtx.Reset, 10))
+
+	if limiterCtx.Reached {
+		if wait := limiterCtx.Reset - time.Now().Unix(); wait > 0 {
+			h.Set("Retry-After", strconv.FormatInt(wait, 10))
+		}
+		log.Infof("Too Many Requests from %s on %s", key, c.Request().URL)
+		return echo.NewHTTPError(http.StatusTooManyRequests, "Too Many Requests")
+	}
+	return nil
+}
+
 // RateLimit is the rate limit middleware
 func RateLimit(rateLimiter *limiter.Limiter, rateLimitKind string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -48,23 +73,9 @@ func RateLimit(rateLimiter *limiter.Limiter, rateLimitKind string) echo.Middlewa
 			default:
 				log.Errorf("Unknown rate limit kind configured: %s", rateLimitKind)
 			}
-			limiterCtx, err := rateLimiter.Get(c.Request().Context(), rateLimitKey)
-			if err != nil {
-				log.Errorf("IPRateLimit - rateLimiter.Get - err: %v, %s on %s", err, rateLimitKey, c.Request().URL)
-				return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error").Wrap(err)
+			if err := enforceRateLimit(c, rateLimiter, rateLimitKey); err != nil {
+				return err
 			}
-
-			h := c.Response().Header()
-			h.Set("X-RateLimit-Limit", strconv.FormatInt(limiterCtx.Limit, 10))
-			h.Set("X-RateLimit-Remaining", strconv.FormatInt(limiterCtx.Remaining, 10))
-			h.Set("X-RateLimit-Reset", strconv.FormatInt(limiterCtx.Reset, 10))
-
-			if limiterCtx.Reached {
-				log.Infof("Too Many Requests from %s on %s", rateLimitKey, c.Request().URL)
-				return echo.NewHTTPError(http.StatusTooManyRequests, "Too Many Requests")
-			}
-
-			// log.Printf("%s request continue", c.RealIP())
 			return next(c)
 		}
 	}

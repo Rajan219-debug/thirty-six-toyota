@@ -34,7 +34,7 @@ type Note struct {
 	// The note's body text.
 	Body string `xorm:"longtext null" json:"body" valid:"runelength(0|8000)" maxLength:"8000" doc:"The note's body text."`
 	// The note's color swatch (amber, mint or lavender). Purely presentational.
-	Color string `xorm:"varchar(20) not null" json:"color" valid:"runelength(1|20)" minLength:"1" maxLength:"20" doc:"The note's color swatch (amber, mint or lavender)."`
+	Color string `xorm:"varchar(20) not null" json:"color" valid:"in(amber|mint|lavender)" minLength:"1" maxLength:"20" doc:"The note's color swatch. Must be exactly one of: amber, mint, lavender."`
 	// Whether the note is pinned to the top of the list.
 	Pinned bool `xorm:"not null" json:"pinned" doc:"Whether the note is pinned to the top of the list."`
 

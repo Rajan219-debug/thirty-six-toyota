@@ -85,9 +85,9 @@ type Task struct {
 	// The task priority. Can be anything you want, it is possible to sort by this later.
 	Priority int64 `xorm:"bigint null" json:"priority"`
 	// Urgency input (1-5) feeding the automatic priority score, alongside importance and deadline proximity.
-	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
+	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" minimum:"0" maximum:"5" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
 	// Importance input (1-5) feeding the automatic priority score, alongside urgency and deadline proximity.
-	Importance int64 `xorm:"bigint null default 0" json:"importance" valid:"range(0|5)" doc:"How important this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with urgency and deadline proximity."`
+	Importance int64 `xorm:"bigint null default 0" json:"importance" valid:"range(0|5)" minimum:"0" maximum:"5" doc:"How important this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with urgency and deadline proximity."`
 	// Estimated effort for this task in seconds, set when planning. Compared against tracked time in the department estimates report.
 	EstimatedSeconds int64 `xorm:"bigint null default 0 'estimated_seconds'" json:"estimated_seconds" valid:"range(0|9223372036854775807)" doc:"Estimated effort in seconds. Compared against tracked time in the department estimates report."`
 	// The computed weighted priority score from urgency, importance, and deadline proximity. Not stored; recalculated on every read.

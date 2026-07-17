@@ -36,7 +36,7 @@ type Conversation struct {
 	IsGroup bool `xorm:"bool not null default false" json:"is_group" doc:"Whether this is a group chat (3+ members) or a 1:1 direct message."`
 
 	// The ids of the other members to start this conversation with. Write-only — used on create.
-	MemberIDs []int64 `xorm:"-" json:"member_ids"`
+	MemberIDs []int64 `xorm:"-" json:"member_ids" maxItems:"50" doc:"The ids of the other members to start this conversation with. Write-only — used on create. Every id must be an existing user; at most 50 members."`
 	// The full member list of this conversation, including the creator.
 	Members []*user.User `xorm:"-" json:"members" readOnly:"true" doc:"The full member list of this conversation, including the creator."`
 	// The most recent message in this conversation, if any.
@@ -70,6 +70,23 @@ func (c *Conversation) Create(s *xorm.Session, a web.Auth) (err error) {
 	memberIDs := uniqueInt64s(c.MemberIDs)
 	if len(memberIDs) == 0 {
 		return ErrConversationNeedsMembers{}
+	}
+	// Huma enforces maxItems on the schema; re-check here so the v1-style
+	// pipeline (and any future caller) can't bypass it and mass-insert rows.
+	if len(memberIDs) > 50 {
+		return ErrConversationNeedsMembers{}
+	}
+
+	// Reject ids that aren't real users instead of silently creating ghost
+	// memberships that loadMembers would filter out on display.
+	members, err := user.GetUsersByIDs(s, memberIDs)
+	if err != nil {
+		return err
+	}
+	for _, id := range memberIDs {
+		if _, is := members[id]; !is {
+			return ErrConversationMemberDoesNotExist{UserID: id}
+		}
 	}
 
 	c.ID = 0
