@@ -687,6 +687,17 @@ func InitConfig() {
 		}
 	}
 
+	// Fail closed on a known-placeholder or too-short JWT signing secret. The
+	// safe random default (InitDefaultConfig above) only applies when nothing
+	// sets service.secret / service.jwtsecret at all — docker-compose.yml sets
+	// the latter to a literal placeholder as a *bash* default, which silently
+	// becomes the real, checked-into-git secret if an operator forgets to
+	// override it, letting anyone forge a valid JWT for any user. Same
+	// fail-closed shape as the multi-tenancy superuser check in db.go.
+	if secret := ServiceSecret.GetString(); secret == "change-me-in-production" || len(secret) < 16 {
+		log.Fatalf("service.secret is missing, too short, or still the placeholder value. Generate a real one (e.g. `openssl rand -hex 32`) and set it via VIKUNJA_SERVICE_SECRET.")
+	}
+
 	if _, err := url.ParseRequestURI(AvatarGravatarBaseURL.GetString()); err != nil {
 		log.Fatalf("Could not parse gravatarbaseurl: %s", err)
 	}

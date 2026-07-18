@@ -19,14 +19,29 @@ services:
       # Connect as the NON-SUPERUSER app role (created by the db init script).
       # A superuser would bypass Row-Level Security, defeating outlet isolation.
       VIKUNJA_DATABASE_USER: vikunja_app
-      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_APP_DB_PASSWORD:-vikunja_app}
+      # No fallback default: a guessable password on the DB role RLS depends on
+      # is a real hole. `docker compose up` refuses to start until .env sets it.
+      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_APP_DB_PASSWORD:?Set VIKUNJA_APP_DB_PASSWORD in .env}
       VIKUNJA_DATABASE_DATABASE: vikunja
       # Multi-outlet isolation. Off by default (app behaves single-outlet). Set to
       # 1 only once every request path binds a tenant — see the multitenancy plan.
       VIKUNJA_MULTITENANCY_ENFORCE: ${VIKUNJA_MULTITENANCY_ENFORCE:-0}
-      VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWT_SECRET:-change-me-in-production}
+      # No fallback default, deliberately: a placeholder here would silently
+      # become the real, checked-into-git JWT secret if forgotten, letting
+      # anyone forge a token for any user. `docker compose up` refuses to start
+      # until .env sets a real one (see pkg/config/config.go's matching
+      # fail-closed check, which also refuses to boot on a placeholder/short
+      # secret if this ever gets bypassed). Generate one with: openssl rand -hex 32
+      VIKUNJA_SERVICE_SECRET: "${VIKUNJA_JWT_SECRET:?Set VIKUNJA_JWT_SECRET in .env (generate one with `openssl rand -hex 32`)}"
       VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
       VIKUNJA_SERVICE_FRONTENDURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
+      # Rate limiting. The strict per-IP + per-account backoff on login/register/
+      # password-reset is always on regardless of this flag; this switch enables
+      # the general public/authenticated tiers on top of it (see rate_limit.go).
+      VIKUNJA_RATELIMIT_ENABLED: ${VIKUNJA_RATELIMIT_ENABLED:-true}
+      VIKUNJA_RATELIMIT_KIND: user
+      VIKUNJA_RATELIMIT_LIMIT: 100
+      VIKUNJA_RATELIMIT_PERIOD: 60
       # Email. Task-assignment, reminders and closure notifications are e-mailed
       # to staff once this is on. Off by default — set VIKUNJA_MAILER_ENABLED=true
       # and the host/username/password (Gmail, SendGrid, or the dealership SMTP)
@@ -48,10 +63,12 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: vikunja
-      POSTGRES_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
+      POSTGRES_PASSWORD: "${VIKUNJA_DB_PASSWORD:?Set VIKUNJA_DB_PASSWORD in .env}"
       POSTGRES_DB: vikunja
       # Password for the non-superuser app role created by the init script.
-      VIKUNJA_APP_DB_PASSWORD: ${VIKUNJA_APP_DB_PASSWORD:-vikunja_app}
+      # Must match the vikunja service's VIKUNJA_APP_DB_PASSWORD above — both
+      # read the same .env key, so they can't drift out of sync.
+      VIKUNJA_APP_DB_PASSWORD: "${VIKUNJA_APP_DB_PASSWORD:?Set VIKUNJA_APP_DB_PASSWORD in .env}"
     volumes:
       - vikunja-db:/var/lib/postgresql/data
       # Runs once on first init: creates the non-superuser vikunja_app role.
