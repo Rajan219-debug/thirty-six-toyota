@@ -57,6 +57,18 @@ Most of this repository is licensed under [AGPL‑3.0‑or‑later](LICENSE).
 The contents of [`desktop/`](desktop/) are licensed under
 [GPL‑3.0‑or‑later](desktop/LICENSE).
 
+### A note on this fork
+
+This is a modified fork (see the commit history for the Thirty Six Toyota
+changes on top of upstream Vikunja). AGPL's network-use clause means anyone
+interacting with a running instance over a network — e.g. dealership staff
+using the deployed app — has a right to that instance's corresponding
+source, including these modifications. For a private, single-dealership
+deployment this is low-stakes, but keep this repository (or a copy of it)
+reachable to anyone who uses the app, rather than leaving it as an
+unshared local checkout, and revisit this if the fork is ever reused across
+multiple dealerships as a product.
+
 ### Unsplash Images
 
 Background images from Unsplash are distributed under the [Unsplash License](https://unsplash.com/license). The license requires giving credit to the photographer and Unsplash. See [Unsplash’s terms](https://unsplash.com/terms) for more information.

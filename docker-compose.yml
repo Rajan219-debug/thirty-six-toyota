@@ -54,9 +54,29 @@ services:
       VIKUNJA_MAILER_PASSWORD: ${VIKUNJA_MAILER_PASSWORD:-}
       VIKUNJA_MAILER_FROMEMAIL: ${VIKUNJA_MAILER_FROMEMAIL:-noreply@thirtysixtoyota.com}
     ports:
-      - "${VIKUNJA_PORT:-3456}:3456"
+      # Bound to localhost only: Caddy (below) is the public entry point and
+      # terminates TLS. Publishing this to 0.0.0.0 too would let anyone reach
+      # the app directly over plain HTTP, bypassing TLS entirely. Still
+      # reachable from the VPS itself (e.g. over an SSH tunnel) for debugging.
+      - "127.0.0.1:${VIKUNJA_PORT:-3456}:3456"
     volumes:
       - vikunja-files:/app/vikunja/files
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - vikunja
+    environment:
+      # Bare domain, no scheme — e.g. tasks.yourdealership.example.
+      VIKUNJA_DOMAIN: ${VIKUNJA_DOMAIN:?Set VIKUNJA_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     restart: unless-stopped
 
   db:
@@ -83,3 +103,5 @@ services:
 volumes:
   vikunja-db:
   vikunja-files:
+  caddy-data:
+  caddy-config:

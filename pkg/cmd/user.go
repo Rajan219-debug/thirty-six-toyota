@@ -128,7 +128,10 @@ var userSetAdminCmd = &cobra.Command{
 			log.Fatalf("The admin-panel license feature is not active; refusing to change the is_admin flag.")
 		}
 
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 		value := userFlagMakeAdmin
 		if err := setUserAdmin(s, args[0], value); err != nil {
@@ -197,7 +200,10 @@ var userListCmd = &cobra.Command{
 		initialize.FullInit()
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		var users []*user.User
@@ -259,7 +265,10 @@ var userCreateCmd = &cobra.Command{
 		initialize.FullInit()
 	},
 	Run: func(_ *cobra.Command, _ []string) {
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		u := &user.User{
@@ -300,7 +309,10 @@ var userUpdateCmd = &cobra.Command{
 		initialize.FullInit()
 	},
 	Run: func(_ *cobra.Command, args []string) {
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		u := getUserFromArg(s, args[0])
@@ -337,7 +349,10 @@ var userResetPasswordCmd = &cobra.Command{
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		u := getUserFromArg(s, args[0])
@@ -373,7 +388,10 @@ var userChangeStatusCmd = &cobra.Command{
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		u := getUserFromArg(s, args[0])
@@ -431,7 +449,10 @@ var userDeleteCmd = &cobra.Command{
 			}
 		}
 
-		s := db.NewSession()
+		// An operator-run CLI action, not tied to any one outlet: it needs
+		// system-wide visibility to find and cascade-delete a user's data
+		// regardless of which outlet they belong to.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		u := getUserFromArg(s, args[0])
