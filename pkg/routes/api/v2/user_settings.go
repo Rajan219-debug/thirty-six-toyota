@@ -132,7 +132,7 @@ func userShow(ctx context.Context, _ *struct{}) (*singleBody[userInfoBody], erro
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := models.GetUserOrLinkShareUser(s, a)
@@ -173,7 +173,7 @@ func userChangePassword(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	if err := models.ChangeUserPassword(ctx, s, doer, in.Body.OldPassword, in.Body.NewPassword); err != nil {
@@ -203,7 +203,7 @@ func userUpdateEmail(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	if err := user.ChangeUserEmail(ctx, s, doer, in.Body.Password, in.Body.NewEmail); err != nil {
@@ -230,7 +230,7 @@ func userUpdateSettings(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := user.GetUserWithEmail(s, &user.User{ID: doer.ID})
@@ -261,7 +261,7 @@ func userGetAvatarProvider(ctx context.Context, _ *struct{}) (*singleBody[userAv
 		return nil, translateDomainError(err)
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := user.GetUserWithEmail(s, &user.User{ID: doer.ID})
@@ -288,7 +288,7 @@ func userSetAvatarProvider(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := user.GetUserWithEmail(s, &user.User{ID: doer.ID})

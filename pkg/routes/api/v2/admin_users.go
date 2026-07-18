@@ -138,7 +138,11 @@ func RegisterAdminUserRoutes(api huma.API) {
 func init() { AddRouteRegistrar(RegisterAdminUserRoutes) }
 
 func adminOverview(_ context.Context, _ *struct{}) (*adminOverviewBody, error) {
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant
+	// (the target, or the counts in adminOverview, may span every outlet), so this
+	// needs system-wide visibility rather than a session pinned to the acting
+	// admin's own outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	overview, err := models.BuildOverview(s)
@@ -154,7 +158,11 @@ func adminUsersCreate(ctx context.Context, in *struct{ Body models.CreateUserBod
 		return nil, err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant
+	// (the target, or the counts in adminOverview, may span every outlet), so this
+	// needs system-wide visibility rather than a session pinned to the acting
+	// admin's own outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	newUser, err := models.CreateUserAsAdmin(s, doer, &in.Body)
@@ -225,7 +233,11 @@ func adminUsersPasswordResetEmail(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant
+	// (the target, or the counts in adminOverview, may span every outlet), so this
+	// needs system-wide visibility rather than a session pinned to the acting
+	// admin's own outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 	if err := models.RequestPasswordResetAsAdmin(s, doer, in.ID); err != nil {
 		_ = s.Rollback()
@@ -260,7 +272,11 @@ func adminUsersDelete(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant
+	// (the target, or the counts in adminOverview, may span every outlet), so this
+	// needs system-wide visibility rather than a session pinned to the acting
+	// admin's own outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 	if err := models.DeleteUserAsAdmin(s, doer, in.ID, mode); err != nil {
 		_ = s.Rollback()
@@ -284,7 +300,11 @@ func adminCommitUser(ctx context.Context, action func(s *xorm.Session, doer *use
 		return nil, err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant
+	// (the target, or the counts in adminOverview, may span every outlet), so this
+	// needs system-wide visibility rather than a session pinned to the acting
+	// admin's own outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	target, err := action(s, doer)

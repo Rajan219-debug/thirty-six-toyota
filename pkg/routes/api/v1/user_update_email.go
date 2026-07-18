@@ -59,7 +59,7 @@ func UpdateUserEmail(c *echo.Context) (err error) {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(emailUpdate.User.ID)
 	defer s.Close()
 
 	if err := user.ChangeUserEmail(c.Request().Context(), s, emailUpdate.User, emailUpdate.Password, emailUpdate.NewEmail); err != nil {

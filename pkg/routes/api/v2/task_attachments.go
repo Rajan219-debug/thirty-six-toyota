@@ -141,7 +141,7 @@ func taskAttachmentsUpload(ctx context.Context, in *taskAttachmentUploadInput) (
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	formFiles := in.RawBody.Data().Files
@@ -177,7 +177,7 @@ func taskAttachmentsDownload(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	previewSize := models.GetPreviewSizeFromString(in.PreviewSize)

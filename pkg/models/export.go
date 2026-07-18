@@ -467,7 +467,9 @@ func RegisterOldExportCleanupCron() {
 	const logPrefix = "[User Export Cleanup Cron] "
 
 	err := cron.Schedule("0 * * * *", func() {
-		s := db.NewSession()
+		// A system-wide sweep across every outlet's export files; all deletes, so
+		// is_hq visibility (USING) is enough — no insert needs a pinned tenant.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		users := []*user.User{}

@@ -58,7 +58,7 @@ func UserShow(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Error getting current user.").Wrap(err)
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := models.GetUserOrLinkShareUser(s, a)

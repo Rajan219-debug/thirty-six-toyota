@@ -42,7 +42,9 @@ func RegisterTaskCleanupCron() {
 }
 
 func deleteExpiredTasks(now time.Time) {
-	s := db.NewSession()
+	// A system-wide sweep across every outlet's soft-deleted tasks; all deletes,
+	// so is_hq visibility (USING) is enough — no insert needs a pinned tenant.
+	s := db.NewSystemSession()
 	tasks := []*Task{}
 	err := s.Unscoped().
 		Where(builder.And(
@@ -64,7 +66,7 @@ func deleteExpiredTasks(now time.Time) {
 
 	for _, task := range tasks {
 		func() {
-			ts := db.NewSession()
+			ts := db.NewSystemSession()
 			defer ts.Close()
 
 			err = hardDeleteTask(ts, task)

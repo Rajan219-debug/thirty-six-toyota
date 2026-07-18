@@ -101,7 +101,7 @@ func projectUsersSearch(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	currentUser, err := models.GetUserOrLinkShareUser(s, a)

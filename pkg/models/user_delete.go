@@ -41,7 +41,8 @@ func RegisterUserDeletionCron() {
 }
 
 func deleteUsers() {
-	s := db.NewSession()
+	// A system-wide sweep across every outlet's scheduled deletions.
+	s := db.NewSystemSession()
 	users := []*user.User{}
 	err := s.Where(builder.Lt{"deletion_scheduled_at": time.Now()}).
 		Find(&users)
@@ -66,7 +67,7 @@ func deleteUsers() {
 		}
 
 		func() {
-			us := db.NewSession()
+			us := db.NewSystemSession()
 			defer us.Close()
 
 			err = DeleteUser(us, u)

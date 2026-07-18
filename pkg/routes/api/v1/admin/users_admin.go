@@ -68,7 +68,8 @@ func PatchAdmin(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	target, err := models.SetUserAdminFlag(s, doer, id, *body.IsAdmin)

@@ -225,7 +225,7 @@ func RegisterSessionCleanupCron() {
 	const logPrefix = "[Session Cleanup Cron] "
 
 	err := cron.Schedule("0 * * * *", func() {
-		s := db.NewSession()
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		now := time.Now()

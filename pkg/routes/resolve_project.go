@@ -23,6 +23,7 @@ import (
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/models"
+	auth2 "code.vikunja.io/api/pkg/modules/auth"
 
 	"github.com/labstack/echo/v5"
 )
@@ -43,7 +44,12 @@ func ResolveProjectIdentifier() echo.MiddlewareFunc {
 				return next(c)
 			}
 
-			s := db.NewSession()
+			a, err := auth2.GetAuthFromClaims(c)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, "invalid or missing authentication")
+			}
+
+			s := db.NewBoundSession(a.GetID())
 			project := &models.Project{}
 			has, err := s.Where("identifier = ?", strings.ToUpper(raw)).Get(project)
 			_ = s.Close()

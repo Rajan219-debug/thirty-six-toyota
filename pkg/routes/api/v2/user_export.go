@@ -103,7 +103,12 @@ func confirmExportPassword(ctx context.Context, s *xorm.Session, password string
 }
 
 func userExportRequest(ctx context.Context, in *userExportPasswordBody) (*messageBody, error) {
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := confirmExportPassword(ctx, s, in.Body.Password)
@@ -127,7 +132,12 @@ func userExportRequest(ctx context.Context, in *userExportPasswordBody) (*messag
 }
 
 func userExportDownload(ctx context.Context, in *userExportPasswordBody) (*huma.StreamResponse, error) {
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := confirmExportPassword(ctx, s, in.Body.Password)
@@ -159,7 +169,12 @@ func userExportDownload(ctx context.Context, in *userExportPasswordBody) (*huma.
 }
 
 func userExportStatus(ctx context.Context, _ *struct{}) (*userExportStatusBody, error) {
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := authUserFromCtx(ctx, s)

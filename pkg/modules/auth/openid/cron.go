@@ -57,7 +57,9 @@ func RegisterEmptyOpenIDTeamCleanupCron() {
 	const logPrefix = "[Empty openid Team Cleanup Cron] "
 
 	err := cron.Schedule("* * * * *", func() {
-		s := db.NewSession()
+		// A system-wide sweep across every outlet's teams; all deletes, so is_hq
+		// visibility (USING) is enough — no insert needs a pinned tenant.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		err := RemoveEmptySSOTeams(s)

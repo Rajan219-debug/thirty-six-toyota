@@ -109,7 +109,10 @@ func RegisterAdminTenantRoutes(api huma.API) {
 func init() { AddRouteRegistrar(RegisterAdminTenantRoutes) }
 
 func adminTenantsList(_ context.Context, _ *struct{}) (*tenantsListBody, error) {
-	s := db.NewSession()
+	// Instance-admin action: legitimately cross-tenant (creating/assigning/deleting
+	// outlets touches more than the acting admin's own outlet), so this needs
+	// system-wide visibility rather than a session pinned to one tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 	tenants, err := models.GetAllTenants(s)
 	if err != nil {
@@ -123,7 +126,10 @@ func adminTenantsList(_ context.Context, _ *struct{}) (*tenantsListBody, error) 
 }
 
 func adminTenantsCreate(_ context.Context, in *struct{ Body createTenantBody }) (*tenantBody, error) {
-	s := db.NewSession()
+	// Instance-admin action: legitimately cross-tenant (creating/assigning/deleting
+	// outlets touches more than the acting admin's own outlet), so this needs
+	// system-wide visibility rather than a session pinned to one tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	exists, err := s.Where("slug = ?", in.Body.Slug).Exist(&models.Tenant{})
@@ -150,7 +156,10 @@ func adminTenantsCreate(_ context.Context, in *struct{ Body createTenantBody }) 
 func adminTenantsSetDefault(_ context.Context, in *struct {
 	ID int64 `path:"id" doc:"The numeric ID of the outlet to make default."`
 }) (*struct{}, error) {
-	s := db.NewSession()
+	// Instance-admin action: legitimately cross-tenant (creating/assigning/deleting
+	// outlets touches more than the acting admin's own outlet), so this needs
+	// system-wide visibility rather than a session pinned to one tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 	if err := models.SetDefaultOutlet(s, in.ID); err != nil {
 		_ = s.Rollback()
@@ -165,7 +174,10 @@ func adminTenantsSetDefault(_ context.Context, in *struct {
 func adminTenantsDelete(_ context.Context, in *struct {
 	ID int64 `path:"id" doc:"The numeric ID of the outlet to delete."`
 }) (*struct{}, error) {
-	s := db.NewSession()
+	// Instance-admin action: legitimately cross-tenant (creating/assigning/deleting
+	// outlets touches more than the acting admin's own outlet), so this needs
+	// system-wide visibility rather than a session pinned to one tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 	if err := models.DeleteTenant(s, in.ID); err != nil {
 		_ = s.Rollback()
@@ -181,7 +193,10 @@ func adminUsersSetOutlet(_ context.Context, in *struct {
 	ID   int64 `path:"id" doc:"The numeric ID of the user."`
 	Body setOutletBody
 }) (*outletAssignmentBody, error) {
-	s := db.NewSession()
+	// Instance-admin action: legitimately cross-tenant (creating/assigning/deleting
+	// outlets touches more than the acting admin's own outlet), so this needs
+	// system-wide visibility rather than a session pinned to one tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 	if err := models.SetUserOutlet(s, in.ID, in.Body.TenantID, in.Body.IsHQ); err != nil {
 		_ = s.Rollback()

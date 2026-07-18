@@ -55,6 +55,10 @@ func UserRequestDeletion(c *echo.Context) error {
 		_ = s.Rollback()
 		return err
 	}
+	if err := db.BindTenantForUser(s, u.ID); err != nil {
+		_ = s.Rollback()
+		return err
+	}
 
 	if u.IsLocalUser() {
 		var deletionRequest UserPasswordConfirmation
@@ -119,6 +123,10 @@ func UserConfirmDeletion(c *echo.Context) error {
 		_ = s.Rollback()
 		return err
 	}
+	if err := db.BindTenantForUser(s, u.ID); err != nil {
+		_ = s.Rollback()
+		return err
+	}
 
 	err = user.ConfirmDeletion(s, u, deleteConfirmation.Token)
 	if err != nil {
@@ -153,6 +161,10 @@ func UserCancelDeletion(c *echo.Context) error {
 
 	u, err := user.GetCurrentUserFromDB(s, c)
 	if err != nil {
+		_ = s.Rollback()
+		return err
+	}
+	if err := db.BindTenantForUser(s, u.ID); err != nil {
 		_ = s.Rollback()
 		return err
 	}

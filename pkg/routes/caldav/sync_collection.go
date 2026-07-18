@@ -166,7 +166,7 @@ func handleSyncCollectionReport(c *echo.Context, body string, storage *VikunjaCa
 		}
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(storage.user.ID)
 	defer s.Close()
 	deletions, err := models.GetDeletedTasksSince(s, projectID, tokenTS)
 	if err != nil {

@@ -100,7 +100,10 @@ func adminProjectsPatchOwner(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	// Instance-admin reassignment: the project or its new owner may belong to a
+	// different outlet than the acting admin's own, so this needs system-wide
+	// visibility rather than a session pinned to one tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	p, err := models.ReassignProjectOwner(s, doer, in.ID, in.Body.OwnerID)

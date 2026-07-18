@@ -571,6 +571,23 @@ func BindTenantForUser(s *xorm.Session, userID int64) error {
 	return err
 }
 
+// PinSessionTenant sets app.current_tenant to the given outlet on an
+// already-open session, without touching app.is_hq. Use before a write to a
+// specific row on behalf of an instance-admin action (e.g. reassigning a
+// project's owner) whose target may not belong to the acting admin's own
+// outlet: the RLS policy's WITH CHECK clause requires the written row's
+// tenant_id to match this GUC even when the write doesn't change tenant_id, so
+// an is_hq-only session (NewSystemSession) can read the row but not write it
+// without first pinning to that row's actual tenant. No-op unless enforcement
+// is on and the DB is Postgres.
+func PinSessionTenant(s *xorm.Session, tenantID int64) error {
+	if !MultiTenancyEnforced() || x.Dialect().URI().DBType != schemas.POSTGRES {
+		return nil
+	}
+	_, err := s.Exec("SELECT set_config('app.current_tenant', ?, true)", strconv.FormatInt(tenantID, 10))
+	return err
+}
+
 // NewBoundSession opens a request transaction already bound to the given user's
 // outlet, so the RLS policies scope every query to their tenant. Use this in
 // request handlers in place of NewSession. A binding error is logged, not fatal:
@@ -590,12 +607,25 @@ func NewBoundSession(userID int64) *xorm.Session {
 // or the WITH CHECK policy rejects the insert.
 func NewSystemSession() *xorm.Session {
 	s := NewSession()
-	if MultiTenancyEnforced() && x.Dialect().URI().DBType == schemas.POSTGRES {
-		if _, err := s.Exec("SELECT set_config('app.is_hq', 'on', true)"); err != nil {
-			log.Errorf("Could not set system tenant context: %s", err)
-		}
-	}
+	ElevateSessionToHQ(s)
 	return s
+}
+
+// ElevateSessionToHQ sets app.is_hq='on' on an already-open session, so its
+// SELECTs see every outlet's rows via the RLS policies' HQ clause. For an
+// existing request session (already bound to the caller's own outlet by
+// NewBoundSession) that legitimately needs to read across every tenant for
+// one query — e.g. an instance-admin listing — without losing the caller's
+// current_tenant (writes on unrelated rows in the same transaction should
+// still land in the caller's own outlet). No-op unless enforcement is on and
+// the DB is Postgres.
+func ElevateSessionToHQ(s *xorm.Session) {
+	if !MultiTenancyEnforced() || x.Dialect().URI().DBType != schemas.POSTGRES {
+		return
+	}
+	if _, err := s.Exec("SELECT set_config('app.is_hq', 'on', true)"); err != nil {
+		log.Errorf("Could not elevate session to HQ visibility: %s", err)
+	}
 }
 
 // rlsExemptTables carry a tenant_id column but get NO RLS policy: they are read

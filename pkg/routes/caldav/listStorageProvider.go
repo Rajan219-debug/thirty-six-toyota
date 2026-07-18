@@ -122,7 +122,7 @@ func (vcls *VikunjaCaldavProjectStorage) GetResources(rpath string, withChildren
 		return []data.Resource{r}, nil
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(vcls.user.ID)
 	defer s.Close()
 
 	// Otherwise get all projects
@@ -209,7 +209,7 @@ func (vcls *VikunjaCaldavProjectStorage) GetResourcesByList(rpaths []string) (re
 		return
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(vcls.user.ID)
 	defer s.Close()
 
 	// GetTasksByUIDs...
@@ -281,7 +281,7 @@ func (vcls *VikunjaCaldavProjectStorage) GetResource(rpath string) (*data.Resour
 
 	// If the task is not nil, we need to get the task and not the project
 	if vcls.task != nil {
-		s := db.NewSession()
+		s := db.NewBoundSession(vcls.user.ID)
 		defer s.Close()
 
 		// save and override the updated unix date to not break any later etag checks
@@ -342,7 +342,7 @@ func (vcls *VikunjaCaldavProjectStorage) GetShallowResource(rpath string) (*data
 // CreateResource creates a new resource
 func (vcls *VikunjaCaldavProjectStorage) CreateResource(rpath, content string) (*data.Resource, error) {
 
-	s := db.NewSession()
+	s := db.NewBoundSession(vcls.user.ID)
 	defer s.Close()
 
 	vTask, err := caldav.ParseTaskFromVTODO(content)
@@ -451,7 +451,7 @@ func (vcls *VikunjaCaldavProjectStorage) UpdateResource(rpath, content string) (
 	vTask.ProjectID = vcls.project.ID
 	vcls.task.ProjectID = vcls.project.ID
 
-	s := db.NewSession()
+	s := db.NewBoundSession(vcls.user.ID)
 	defer s.Close()
 
 	// Check the permissions
@@ -522,7 +522,7 @@ func (vcls *VikunjaCaldavProjectStorage) UpdateResource(rpath, content string) (
 // DeleteResource deletes a resource
 func (vcls *VikunjaCaldavProjectStorage) DeleteResource(_ string) error {
 	if vcls.task != nil {
-		s := db.NewSession()
+		s := db.NewBoundSession(vcls.user.ID)
 		defer s.Close()
 
 		// Check the permissions
@@ -779,7 +779,7 @@ func (vlra *VikunjaProjectResourceAdapter) GetModTime() time.Time {
 }
 
 func (vcls *VikunjaCaldavProjectStorage) getProjectRessource(isCollection bool) (rr VikunjaProjectResourceAdapter, err error) {
-	s := db.NewSession()
+	s := db.NewBoundSession(vcls.user.ID)
 	defer s.Close()
 
 	if vcls.project == nil {

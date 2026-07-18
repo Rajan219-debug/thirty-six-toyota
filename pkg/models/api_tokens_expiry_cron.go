@@ -49,7 +49,11 @@ func checkForExpiringAPITokensAt(now time.Time) {
 	oneDay := now.Add(24 * time.Hour)
 	sevenDays := now.Add(7 * 24 * time.Hour)
 
-	s := db.NewSession()
+	// api_tokens is RLS-exempt, so reading tokens across every outlet needs no
+	// special session. The per-user notification insert below does need a
+	// pinned tenant, though, so this still uses a system session and binds
+	// per-user right before that write.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	// Find all tokens expiring within the next 7 days that haven't expired yet

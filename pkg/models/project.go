@@ -1150,6 +1150,14 @@ func RegisterUser(s *xorm.Session, u *user.User) (*user.User, error) {
 		return nil, err
 	}
 
+	// The session isn't bound to any outlet yet (there was no user to bind to
+	// before this insert): the new user's own row just landed via the tenant_id
+	// column default, so bind the session to that same outlet now, before the
+	// default project's insert needs app.current_tenant to satisfy RLS's WITH CHECK.
+	if err := db.BindTenantForUser(s, newUser.ID); err != nil {
+		return nil, err
+	}
+
 	if err := CreateNewProjectForUser(s, newUser); err != nil {
 		return nil, err
 	}

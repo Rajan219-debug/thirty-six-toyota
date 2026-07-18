@@ -122,7 +122,7 @@ func notificationsMarkAllRead(ctx context.Context, _ *struct{}) (*markAllReadBod
 		return nil, huma.Error403Forbidden("link shares cannot have notifications")
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	if err := notifications.MarkAllNotificationsAsRead(s, a.GetID()); err != nil {

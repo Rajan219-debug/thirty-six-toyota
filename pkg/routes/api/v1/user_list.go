@@ -43,17 +43,30 @@ import (
 func UserList(c *echo.Context) error {
 	search := c.QueryParam("s")
 
+	currentUser, err := user.GetCurrentUser(c)
+	if err != nil {
+		return err
+	}
+
 	s := db.NewSession()
 	defer s.Close()
 
-	currentUser, err := user.GetCurrentUser(c)
+	users, err := user.SearchUsers(s, search, currentUser)
 	if err != nil {
 		_ = s.Rollback()
 		return err
 	}
 
-	users, err := user.SearchUsers(s, search, currentUser)
+	// The users table is RLS-exempt (auth looks users up before a tenant is
+	// bound), so this global directory is scoped in app code instead —
+	// mirrors the same fix already applied to the v2 users-search endpoint.
+	users, err = models.FilterUsersByOutlet(s, currentUser.ID, users)
 	if err != nil {
+		_ = s.Rollback()
+		return err
+	}
+
+	if err := s.Commit(); err != nil {
 		_ = s.Rollback()
 		return err
 	}
@@ -90,7 +103,7 @@ func ListUsersForProject(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(auth.GetID())
 	defer s.Close()
 
 	currentUser, err := user.GetCurrentUser(c)

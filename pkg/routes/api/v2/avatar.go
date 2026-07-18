@@ -71,19 +71,20 @@ func init() { AddRouteRegistrar(RegisterAvatarRoutes) }
 func avatarGet(ctx context.Context, in *avatarInput) (*avatarResponse, error) {
 	// Authenticated but no per-user check — any authenticated caller may view any
 	// avatar (matching v1); authFromCtx just surfaces a clean 401 if auth is missing.
-	if _, err := authFromCtx(ctx); err != nil {
+	a, err := authFromCtx(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	// Avatar resolution (user lookup, provider selection, size clamping) is
 	// shared with the v1 handler; only the transport differs.
-	a, mimeType, err := avatar.GetAvatarForUsername(s, in.Username, in.Size)
+	imgBytes, mimeType, err := avatar.GetAvatarForUsername(s, in.Username, in.Size)
 	if err != nil {
 		return nil, translateDomainError(err)
 	}
 
-	return &avatarResponse{ContentType: mimeType, Body: a}, nil
+	return &avatarResponse{ContentType: mimeType, Body: imgBytes}, nil
 }

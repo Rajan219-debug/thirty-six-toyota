@@ -163,6 +163,14 @@ func notifyDB(notifiable Notifiable, notification Notification, existingSession 
 	}
 
 	if existingSession != nil {
+		// The passed-in session may still be bound to whichever actor triggered
+		// this notification (e.g. a task-closure approver), not this
+		// notification's recipient — re-pin here, in the one place every caller
+		// funnels through, rather than in each of them. A no-op when the
+		// recipient isn't a real user row (e.g. a team) or enforcement is off.
+		if err := db.BindTenantForUser(existingSession, notifiable.RouteForDB()); err != nil {
+			return err
+		}
 		_, err = existingSession.Insert(dbNotification)
 		return err
 	}
