@@ -93,6 +93,15 @@ func getAuthIPRateLimiter() *limiter.Limiter {
 	return authIPRateLimiter
 }
 
+// ResetAuthRateLimiterForTests forces the next request to build a fresh
+// limiter. Every webtest request comes from the same fixed test IP, so
+// without this the package-level authIPRateLimiter accumulates hits across
+// every test in the process and eventually 429s a test that did nothing
+// wrong itself. Call from test setup, once per test.
+func ResetAuthRateLimiterForTests() {
+	authIPRateLimiter = nil
+}
+
 // --- per-account failure state, stored via keyvalue (memory or redis) ---
 
 type authFailureState struct {

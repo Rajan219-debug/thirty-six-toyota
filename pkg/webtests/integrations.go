@@ -103,6 +103,12 @@ func setupTestEnv() (e *echo.Echo, err error) {
 		return
 	}
 
+	// Every webtest request comes from the same fixed test IP (see
+	// createRequest); without this the package-level auth IP rate limiter
+	// accumulates hits across every test in the process and eventually 429s
+	// a test that did nothing wrong itself.
+	routes.ResetAuthRateLimiterForTests()
+
 	e = routes.NewEcho()
 	routes.RegisterRoutes(e)
 	return

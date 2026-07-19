@@ -50,12 +50,18 @@ func ReassignProjectOwner(s *xorm.Session, doer *user.User, projectID, newOwnerI
 	// touches it), so it's read directly here to pin the write to the project's
 	// own outlet — required because this update doesn't change tenant_id, but
 	// the RLS policy's WITH CHECK still needs it to match app.current_tenant.
-	var tenantID int64
-	if _, err := s.SQL("SELECT tenant_id FROM projects WHERE id = ?", p.ID).Get(&tenantID); err != nil {
-		return nil, err
-	}
-	if err := db.PinSessionTenant(s, tenantID); err != nil {
-		return nil, err
+	// Gated on enforcement: the column only exists once EnsureTenantColumns has
+	// run against a real Postgres deployment, so unconditionally querying it
+	// breaks any environment that hasn't (e.g. this package's own test suite,
+	// which syncs schema directly from the Go structs).
+	if db.MultiTenancyEnforced() {
+		var tenantID int64
+		if _, err := s.SQL("SELECT tenant_id FROM projects WHERE id = ?", p.ID).Get(&tenantID); err != nil {
+			return nil, err
+		}
+		if err := db.PinSessionTenant(s, tenantID); err != nil {
+			return nil, err
+		}
 	}
 
 	oldOwnerID := p.OwnerID

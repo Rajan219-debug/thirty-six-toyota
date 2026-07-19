@@ -64,6 +64,12 @@ func adminReq(t *testing.T, e *echo.Echo, method, path string, u *user.User, bod
 	return res
 }
 
+// The admin-panel feature is permanently ungated in this Thirty Six Toyota
+// fork (see license.IsFeatureEnabled) — self-hosted instance admins need
+// admin-panel access without a paid license. So a real admin gets through
+// whether or not a license is active; this proves it's truly unconditional
+// rather than incidentally passing because a license happens to be set (see
+// TestAdmin_Overview below).
 func TestAdmin_GateUnlicensed(t *testing.T) {
 	e, err := setupTestEnv()
 	require.NoError(t, err)
@@ -72,7 +78,7 @@ func TestAdmin_GateUnlicensed(t *testing.T) {
 	admin := promoteToAdmin(t, 1)
 
 	res := adminReq(t, e, http.MethodGet, "/api/v1/admin/overview", admin, "")
-	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, http.StatusOK, res.Code, "admin panel is ungated in this fork — an unlicensed instance still lets a real admin in")
 }
 
 func TestAdmin_GateNonAdmin(t *testing.T) {
@@ -503,7 +509,11 @@ func TestAdmin_CreateUser(t *testing.T) {
 	})
 }
 
-// Without the admin-panel license the endpoint must 404 so unlicensed instances cannot mint admins.
+// The admin-panel feature is permanently ungated in this Thirty Six Toyota
+// fork (see license.IsFeatureEnabled), so a real admin can still create users
+// without a license — this proves it's truly unconditional rather than
+// incidentally passing because a license happens to be set (see
+// TestAdmin_CreateUser above).
 func TestAdmin_CreateUser_LicenseInactive(t *testing.T) {
 	e, err := setupTestEnv()
 	require.NoError(t, err)
@@ -513,7 +523,7 @@ func TestAdmin_CreateUser_LicenseInactive(t *testing.T) {
 
 	body := `{"username":"unlicensed-create","password":"averyl0ngpassword","email":"unlicensed-create@example.com"}`
 	res := adminReq(t, e, http.MethodPost, "/api/v1/admin/users", admin, body)
-	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, http.StatusOK, res.Code, "admin panel is ungated in this fork — an unlicensed instance still lets a real admin create users")
 }
 
 func TestAdmin_ReassignProjectOwner(t *testing.T) {

@@ -33,8 +33,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Gate behaviour (404 on non-admin/unlicensed, 401 unauthenticated) is shared by
-// every /api/v2/admin route; covered once here against the overview endpoint.
+// Gate behaviour (404 on non-admin, 401 unauthenticated) is shared by every
+// /api/v2/admin route; covered once here against the overview endpoint. The
+// admin-panel feature itself is permanently ungated in this Thirty Six
+// Toyota fork (see license.IsFeatureEnabled), so a real admin gets through
+// regardless of license state — also covered here.
 func TestHumaAdminOverview(t *testing.T) {
 	t.Run("non-admin user gets 404", func(t *testing.T) {
 		e, err := setupTestEnv()
@@ -52,7 +55,7 @@ func TestHumaAdminOverview(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, res.Code)
 	})
 
-	t.Run("admin without the feature gets 404", func(t *testing.T) {
+	t.Run("admin without a license still gets in", func(t *testing.T) {
 		e, err := setupTestEnv()
 		require.NoError(t, err)
 		license.SetForTests([]license.Feature{})
@@ -61,7 +64,7 @@ func TestHumaAdminOverview(t *testing.T) {
 		admin := promoteToAdmin(t, 1)
 
 		res := adminReq(t, e, http.MethodGet, "/api/v2/admin/overview", admin, "")
-		assert.Equal(t, http.StatusNotFound, res.Code)
+		assert.Equal(t, http.StatusOK, res.Code, "admin panel is ungated in this fork")
 	})
 
 	t.Run("unauthenticated caller gets 401", func(t *testing.T) {

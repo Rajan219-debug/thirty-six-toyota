@@ -65,7 +65,12 @@ func TestAdminBypass_Project(t *testing.T) {
 	})
 }
 
-// Without the admin-panel license, flipping is_admin must not recover the paid bypass.
+// The admin-panel feature is permanently ungated in this Thirty Six Toyota
+// fork (see license.IsFeatureEnabled) — self-hosted instance admins need
+// user + outlet management without a paid license. So the bypass must work
+// the same whether or not a license is active; this proves it's truly
+// unconditional rather than incidentally passing because a license happens
+// to be set (see the sibling TestAdminBypass_Project above).
 func TestAdminBypass_Project_LicenseInactive(t *testing.T) {
 	db.LoadAndAssertFixtures(t)
 	license.ResetForTests()
@@ -81,19 +86,19 @@ func TestAdminBypass_Project_LicenseInactive(t *testing.T) {
 	t.Run("CanRead", func(t *testing.T) {
 		can, _, err := p.CanRead(s, admin)
 		require.NoError(t, err)
-		assert.False(t, can, "unlicensed admin must not read another user's project")
+		assert.True(t, can, "admin bypass works even without a license — the admin panel is ungated in this fork")
 	})
 
 	t.Run("CanWrite", func(t *testing.T) {
 		can, err := p.CanWrite(s, admin)
 		require.NoError(t, err)
-		assert.False(t, can)
+		assert.True(t, can)
 	})
 
 	t.Run("CanDelete", func(t *testing.T) {
 		can, err := p.CanDelete(s, admin)
 		require.NoError(t, err)
-		assert.False(t, can)
+		assert.True(t, can)
 	})
 }
 
