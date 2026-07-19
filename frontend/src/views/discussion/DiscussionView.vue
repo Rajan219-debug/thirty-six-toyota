@@ -87,7 +87,13 @@
 						>
 							<span class="discussion-conversation__avatar">{{ initials(conversationTitle(c)) }}</span>
 							<span class="discussion-conversation__meta">
-								<span class="discussion-conversation__name">{{ conversationTitle(c) }}</span>
+								<span class="discussion-conversation__name">
+									{{ conversationTitle(c) }}
+									<span
+										v-if="c.isUnread"
+										class="discussion-conversation__unread-dot"
+									/>
+								</span>
 								<span class="discussion-conversation__preview">{{ c.lastMessage?.text ?? '—' }}</span>
 							</span>
 						</button>
@@ -164,6 +170,7 @@ import ChatMessageService from '@/services/chatMessage'
 import {getDisplayName} from '@/models/user'
 import {useTitle} from '@/composables/useTitle'
 import {useOrgUsers} from '@/composables/useOrgUsers'
+import {useConversations} from '@/composables/useConversations'
 import {useAuthStore} from '@/stores/auth'
 import type {IConversation} from '@/modelTypes/IConversation'
 import type {IChatMessage} from '@/modelTypes/IChatMessage'
@@ -178,8 +185,7 @@ const chatMessageService = new ChatMessageService()
 const {users: allOrgUsers} = useOrgUsers()
 const orgUsers = computed(() => allOrgUsers.value.filter(u => u.id !== authStore.info?.id))
 
-const conversations = ref<IConversation[]>([])
-const loadingConversations = ref(true)
+const {conversations, loading: loadingConversations} = useConversations()
 const activeConversation = ref<IConversation | null>(null)
 const messages = ref<IChatMessage[]>([])
 const draft = ref('')
@@ -231,10 +237,6 @@ function formatTime(d: Date): string {
 	return new Intl.DateTimeFormat(undefined, {hour: 'numeric', minute: '2-digit'}).format(d)
 }
 
-async function loadConversations() {
-	conversations.value = await conversationService.getAll()
-}
-
 async function loadMessages(conversationId: number) {
 	messages.value = await chatMessageService.getAllForConversation(conversationId)
 	await nextTick()
@@ -243,6 +245,11 @@ async function loadMessages(conversationId: number) {
 
 function selectConversation(c: IConversation) {
 	activeConversation.value = c
+	// Optimistic: the message fetch this triggers marks it read server-side,
+	// but that response doesn't come back through this conversation object —
+	// clear it locally now so the dot disappears immediately instead of
+	// waiting for the next 10s conversation-list poll.
+	c.isUnread = false
 }
 
 watch(activeConversation, c => {
@@ -262,27 +269,19 @@ async function send() {
 
 // ponytail: no websocket/SSE infra in this app yet — polling is the lazy,
 // honest way to get "near real-time" delivery. Swap for a push channel if
-// message volume ever makes 4s-stale feel bad.
+// message volume ever makes 4s-stale feel bad. The conversation list itself
+// polls via useConversations; only the active thread's messages need their
+// own faster interval here.
 let messagePoll: ReturnType<typeof setInterval>
-let conversationPoll: ReturnType<typeof setInterval>
 
-onMounted(async () => {
-	loadingConversations.value = true
-	try {
-		await loadConversations()
-	} finally {
-		loadingConversations.value = false
-	}
-
+onMounted(() => {
 	messagePoll = setInterval(() => {
 		if (activeConversation.value) loadMessages(activeConversation.value.id)
 	}, 4000)
-	conversationPoll = setInterval(loadConversations, 10000)
 })
 
 onUnmounted(() => {
 	clearInterval(messagePoll)
-	clearInterval(conversationPoll)
 })
 </script>
 
@@ -450,12 +449,24 @@ onUnmounted(() => {
 	}
 
 	&__name {
+		display: flex;
+		align-items: center;
+		gap: .4rem;
 		font-weight: 600;
 		font-size: .88rem;
 		color: var(--grey-900);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	&__unread-dot {
+		display: inline-block;
+		flex-shrink: 0;
+		inline-size: .5rem;
+		block-size: .5rem;
+		border-radius: 100%;
+		background: var(--primary);
 	}
 
 	&__preview {

@@ -51,6 +51,10 @@
 							<Icon icon="comments" />
 						</span>
 						{{ $t('navigation.discussion') }}
+						<span
+							v-if="hasUnreadConversations"
+							class="tst-nav-unread-dot"
+						/>
 					</RouterLink>
 				</li>
 				<li>
@@ -174,12 +178,14 @@ import {useAuthStore} from '@/stores/auth'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import type {IProject} from '@/modelTypes/IProject'
 import {useSidebarResize} from '@/composables/useSidebarResize'
+import {useConversations} from '@/composables/useConversations'
 
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
 
 const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
+const {hasUnread: hasUnreadConversations} = useConversations()
 
 // "Create Task" jumps to the user's default project (or first available), where the
 // inline add-task input lives — Vikunja has no standalone global task-create screen.
@@ -297,6 +303,15 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 
 		.menu-item-icon {
 			opacity: .7;
+		}
+
+		.tst-nav-unread-dot {
+			display: inline-block;
+			flex-shrink: 0;
+			inline-size: .5rem;
+			block-size: .5rem;
+			border-radius: 100%;
+			background: var(--primary);
 		}
 
 		&:hover {

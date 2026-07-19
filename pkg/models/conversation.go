@@ -41,6 +41,9 @@ type Conversation struct {
 	Members []*user.User `xorm:"-" json:"members" readOnly:"true" doc:"The full member list of this conversation, including the creator."`
 	// The most recent message in this conversation, if any.
 	LastMessage *ChatMessage `xorm:"-" json:"last_message" readOnly:"true" doc:"The most recent message in this conversation, if any."`
+	// Whether the caller has unread messages in this conversation — true if
+	// the last message came in after they last fetched the message list.
+	IsUnread bool `xorm:"-" json:"is_unread" readOnly:"true" doc:"Whether the caller has unread messages in this conversation."`
 
 	CreatedByID int64 `xorm:"bigint not null" json:"-"`
 	// The user who started this conversation.
@@ -129,6 +132,14 @@ func (c *Conversation) ReadOne(s *xorm.Session, a web.Auth) (err error) {
 		return
 	}
 	c.LastMessage, err = getLastMessage(s, c.ID)
+	if err != nil {
+		return
+	}
+	lastReadAt, err := getLastReadAt(s, c.ID, a.GetID())
+	if err != nil {
+		return
+	}
+	c.IsUnread = conversationIsUnread(c.LastMessage, lastReadAt)
 	return
 }
 
@@ -138,16 +149,19 @@ func (c *Conversation) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, 
 		return []*Conversation{}, 0, 0, nil
 	}
 
-	conversationIDs := []int64{}
-	err = s.Table("conversation_members").
-		Where("user_id = ?", a.GetID()).
-		Cols("conversation_id").
-		Find(&conversationIDs)
+	memberships := []*ConversationMember{}
+	err = s.Where("user_id = ?", a.GetID()).Find(&memberships)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	if len(conversationIDs) == 0 {
+	if len(memberships) == 0 {
 		return []*Conversation{}, 0, 0, nil
+	}
+	conversationIDs := make([]int64, 0, len(memberships))
+	lastReadAtByConversation := make(map[int64]time.Time, len(memberships))
+	for _, m := range memberships {
+		conversationIDs = append(conversationIDs, m.ConversationID)
+		lastReadAtByConversation[m.ConversationID] = m.LastReadAt
 	}
 
 	conversations := []*Conversation{}
@@ -172,6 +186,7 @@ func (c *Conversation) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, 
 		if err != nil {
 			return nil, 0, 0, err
 		}
+		conv.IsUnread = conversationIsUnread(conv.LastMessage, lastReadAtByConversation[conv.ID])
 	}
 
 	numberOfTotalItems, err = s.In("id", conversationIDs).Count(&Conversation{})
@@ -199,6 +214,13 @@ func (c *Conversation) loadMembers(s *xorm.Session) error {
 		}
 	}
 	return nil
+}
+
+// conversationIsUnread reports whether the last message came in after the
+// caller last read the conversation. No message yet is never unread; never
+// having read (the zero time) means any message counts as unread.
+func conversationIsUnread(lastMessage *ChatMessage, lastReadAt time.Time) bool {
+	return lastMessage != nil && lastMessage.Created.After(lastReadAt)
 }
 
 func uniqueInt64s(in []int64) []int64 {

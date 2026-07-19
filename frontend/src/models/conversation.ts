@@ -11,6 +11,7 @@ export default class ConversationModel extends AbstractModel<IConversation> impl
 	memberIds: number[] = []
 	members: IUser[] = []
 	lastMessage: IConversation['lastMessage'] = null
+	isUnread = false
 	createdBy: IUser = UserModel
 	created: Date = null
 	updated: Date = null

@@ -66,6 +66,12 @@ func (m *ChatMessage) Create(s *xorm.Session, a web.Auth) (err error) {
 		return
 	}
 
+	// The author has, by definition, seen their own message — without this
+	// their own conversation list would show it as unread to themselves.
+	if err = markConversationRead(s, m.ConversationID, u.ID); err != nil {
+		return
+	}
+
 	// Bump the conversation so it sorts to the top of the list.
 	_, err = s.ID(m.ConversationID).Cols("updated").Update(&Conversation{Updated: time.Now()})
 	return
@@ -79,6 +85,13 @@ func (m *ChatMessage) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, p
 	}
 	if !is {
 		return nil, 0, 0, ErrGenericForbidden{}
+	}
+
+	// Fetching the message list is how a user "opens" a conversation — mark
+	// it read now rather than requiring a separate endpoint the frontend
+	// would have to remember to call.
+	if err = markConversationRead(s, m.ConversationID, a.GetID()); err != nil {
+		return nil, 0, 0, err
 	}
 
 	messages := []*ChatMessage{}
