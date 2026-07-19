@@ -17,7 +17,9 @@
 					<Logo class="noauth-card__logo" />
 				</div>
 				<div class="noauth-card__rule" />
-				<span class="noauth-card__kicker">Internal Operations Portal</span>
+				<h1 class="noauth-card__kicker">
+					Internal Operations Portal
+				</h1>
 			</header>
 			<div class="noauth-card__body">
 				<Message v-if="motd !== ''">

@@ -14,7 +14,10 @@
 			</div>
 		</div>
 
-		<nav class="menu top-menu">
+		<nav
+			class="menu top-menu"
+			:aria-label="$t('navigation.mainMenu')"
+		>
 			<menu class="menu-list other-menu-items">
 				<li>
 					<RouterLink
@@ -119,6 +122,7 @@
 			<nav
 				v-if="favoriteProjects.length"
 				class="menu"
+				:aria-label="$t('project.favoriteProjects')"
 			>
 				<ProjectsNavigation
 					:model-value="favoriteProjects"
@@ -130,6 +134,7 @@
 			<nav
 				v-if="savedFilterProjects.length"
 				class="menu"
+				:aria-label="$t('filters.title')"
 			>
 				<ProjectsNavigation
 					:model-value="savedFilterProjects"
@@ -138,7 +143,10 @@
 				/>
 			</nav>
 
-			<nav class="menu">
+			<nav
+				class="menu"
+				:aria-label="$t('project.projects')"
+			>
 				<ProjectsNavigation
 					:model-value="projects"
 					:can-edit-order="true"
@@ -281,7 +289,9 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 
 	&__role {
 		font-size: .8rem;
-		color: var(--grey-400);
+		// --grey-400 fails WCAG AA contrast on the white sidebar background;
+		// --grey-600 is the closest darker step that passes.
+		color: var(--grey-600);
 	}
 }
 
@@ -320,7 +330,10 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 		}
 
 		&.router-link-active {
-			color: var(--primary);
+			// full-brightness --primary text fails WCAG AA contrast even on
+			// this faint 10%-opacity tint background; text-tuned shade passes
+			// in both light (darker) and dark (lighter) mode.
+			color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 			font-weight: 700;
 			background: hsla(var(--primary-hsl), .1);
 			border-inline-start-color: var(--primary);

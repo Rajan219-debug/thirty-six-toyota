@@ -2,7 +2,6 @@
 	<div
 		ref="dropdown"
 		class="dropdown"
-		role="menu"
 		@pointerenter="initialMount = true"
 	>
 		<slot
@@ -31,7 +30,10 @@
 				class="dropdown-menu"
 				:style="dropdownMenuStyle"
 			>
-				<div class="dropdown-content">
+				<div
+					class="dropdown-content"
+					role="menu"
+				>
 					<slot :close="close" />
 				</div>
 			</div>

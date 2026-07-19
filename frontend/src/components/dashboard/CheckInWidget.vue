@@ -19,6 +19,7 @@
 				v-model="selectedProjectId"
 				class="check-in__select"
 				:options="projectOptions"
+				:aria-label="$t('dashboard.checkIn.selectProject')"
 			/>
 			<BaseButton
 				class="check-in__button"

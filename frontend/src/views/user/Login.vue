@@ -33,7 +33,6 @@
 				required
 				type="text"
 				autocomplete="username"
-				tabindex="1"
 				:error="usernameValid ? null : $t('user.auth.usernameRequired')"
 				@keyup.enter="submit"
 				@focusout="validateUsernameField()"
@@ -48,14 +47,12 @@
 						v-if="localAuthEnabled"
 						:to="{ name: 'user.password-reset.request' }"
 						class="reset-password-link"
-						tabindex="6"
 					>
 						{{ $t('user.auth.forgotPassword') }}
 					</RouterLink>
 				</div>
 				<Password
 					v-model="password"
-					tabindex="2"
 					:validate-initially="validatePasswordInitially"
 					:validate-min-length="false"
 					@submit="submit"
@@ -71,7 +68,6 @@
 				:placeholder="$t('user.auth.totpPlaceholder')"
 				required
 				type="text"
-				tabindex="3"
 				inputmode="numeric"
 				@keyup.enter="submit"
 			/>
@@ -83,7 +79,6 @@
 			<XButton
 				:loading="isLoading"
 				class="is-fullwidth login-submit"
-				tabindex="4"
 				@click="submit"
 			>
 				{{ $t('user.auth.login') }}
@@ -96,7 +91,7 @@
 				<RouterLink
 					:to="{ name: 'user.register' }"
 					type="secondary"
-					tabindex="5"
+					class="register-link"
 				>
 					{{ $t('user.auth.createAccount') }}
 				</RouterLink>
@@ -260,8 +255,12 @@ async function submit() {
 	letter-spacing: .02em;
 }
 
-.reset-password-link {
+.reset-password-link,
+.register-link {
 	display: inline-block;
+	// the inherited --link (= --primary) color fails WCAG AA contrast on this
+	// card's near-white background; darker shade of the same hue passes.
+	color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 }
 
 .label-with-link {

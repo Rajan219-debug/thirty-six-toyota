@@ -1,7 +1,10 @@
 <template>
 	<div class="content-widescreen">
 		<div class="side-nav-shell">
-			<nav class="navigation">
+			<nav
+				class="navigation"
+				:aria-label="$t('navigation.sectionMenu')"
+			>
 				<ul>
 					<li
 						v-for="(item, index) in navigationItems"

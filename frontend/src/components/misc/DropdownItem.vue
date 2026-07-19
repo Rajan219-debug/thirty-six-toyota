@@ -1,6 +1,7 @@
 <template>
 	<BaseButton
 		class="dropdown-item"
+		role="menuitem"
 		:disabled="disabled"
 		:class="{'is-disabled': disabled}"
 	>

@@ -99,7 +99,9 @@ const variantClass = computed<string>(() => VARIANT_CLASS_MAP[variant.value])
 	gap: .25rem;
 
 	// Default/Primary variant colors
-	background-color: var(--primary);
+	// --primary itself (white text on it) fails WCAG AA contrast (~2.3:1);
+	// --primary-dark is the same hue darkened enough for white text to pass.
+	background-color: var(--primary-dark);
 	color: var(--button-text-color);
 	border-radius: $radius;
 
@@ -109,7 +111,7 @@ const variantClass = computed<string>(() => VARIANT_CLASS_MAP[variant.value])
 
 	&:hover {
 		box-shadow: var(--shadow-md);
-		background-color: var(--primary-dark, color-mix(in srgb, var(--primary) 85%, black));
+		background-color: color-mix(in srgb, var(--primary-dark) 80%, black);
 	}
 
 	&:focus,
@@ -138,11 +140,11 @@ const variantClass = computed<string>(() => VARIANT_CLASS_MAP[variant.value])
 
 	// Primary variant (default, explicit)
 	&.is-primary {
-		background-color: var(--primary);
+		background-color: var(--primary-dark);
 		color: var(--button-text-color);
 
 		&:hover {
-			background-color: var(--primary-dark, color-mix(in srgb, var(--primary) 85%, black));
+			background-color: color-mix(in srgb, var(--primary-dark) 80%, black);
 		}
 	}
 

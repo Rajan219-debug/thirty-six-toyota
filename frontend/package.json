@@ -123,6 +123,7 @@
     "@vue/tsconfig": "0.9.1",
     "@vueuse/shared": "14.3.0",
     "autoprefixer": "10.5.2",
+    "axe-core": "^4.12.1",
     "browserslist": "4.28.4",
     "caniuse-lite": "1.0.30001800",
     "csstype": "3.2.3",

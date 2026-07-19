@@ -253,11 +253,15 @@ onMounted(loadMonth)
 
 		&.is-today {
 			font-weight: 700;
-			color: var(--primary);
+			// var(--primary) text fails WCAG AA contrast here; same text-tuned
+			// shade used for links/active-nav-state elsewhere.
+			color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 		}
 
 		&.is-selected {
-			background: var(--primary);
+			// var(--primary) fails contrast with white text; --primary-dark is
+			// the same fix used for buttons.
+			background: var(--primary-dark);
 			color: #ffffff;
 		}
 	}
