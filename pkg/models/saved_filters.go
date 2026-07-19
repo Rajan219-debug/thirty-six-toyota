@@ -427,8 +427,6 @@ func RegisterAddTaskToFilterViewCron() {
 		log.Debugf("%sFound %d kanban filter views with dates", logPrefix, len(kanbanFilterViews))
 
 		filterTasksCache := make(map[int64][]*Task)
-		newTaskBuckets := []*TaskBucket{}
-		newTaskPositions := []*TaskPosition{}
 
 		viewsToRecalc := map[int64]struct {
 			view    *ProjectView
@@ -479,6 +477,18 @@ func RegisterAddTaskToFilterViewCron() {
 				savedTaskPositionMap[tp.TaskID] = tp
 			}
 
+			// This cron runs unbound (see RegisterAddTaskToFilterViewCron) and processes
+			// views across every tenant in one pass, so the writes below — scoped to
+			// this one view's project — must be pinned per-view rather than once for the
+			// whole batch, or the RLS WITH CHECK on the second tenant's rows would fail.
+			if err := pinSessionToProjectTenant(s, view.ProjectID); err != nil {
+				log.Errorf("%sError pinning session to project %d's tenant: %s", logPrefix, view.ProjectID, err)
+				continue
+			}
+
+			newTaskBuckets := []*TaskBucket{}
+			newTaskPositions := []*TaskPosition{}
+
 			// Collect new tasks to task_buckets and task_positions
 			for _, task := range tasks {
 				if _, exists := savedTaskBucketMap[task.ID]; !exists {
@@ -508,11 +518,15 @@ func RegisterAddTaskToFilterViewCron() {
 
 			// Remove tasks that should not be there
 			deleteStaleFilterTasks(s, logPrefix, savedTaskBucketMap, tasks, view.ID)
+
+			upsertRelatedTaskProperties(s, logPrefix, newTaskBuckets, newTaskPositions)
 		}
 
-		upsertRelatedTaskProperties(s, logPrefix, newTaskBuckets, newTaskPositions)
-
 		for _, data := range viewsToRecalc {
+			if err := pinSessionToProjectTenant(s, data.view.ProjectID); err != nil {
+				log.Errorf("%sError pinning session to project %d's tenant: %s", logPrefix, data.view.ProjectID, err)
+				continue
+			}
 			if err := RecalculateTaskPositions(s, data.view, &user.User{ID: data.ownerID}); err != nil {
 				log.Errorf("%sError recalculating task positions for view %d: %s", logPrefix, data.view.ID, err)
 			}
