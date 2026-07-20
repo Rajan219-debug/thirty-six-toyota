@@ -571,11 +571,11 @@ func TestConversationalMail(t *testing.T) {
 
 		// Should HAVE logo in formal emails
 		assert.Contains(t, mailopts.HTMLMessage, "logo.png")
-		assert.Contains(t, mailopts.HTMLMessage, "Vikunja")
+		assert.Contains(t, mailopts.HTMLMessage, "Thirty Six Toyota")
 		assert.Contains(t, mailopts.EmbedFS, "logo.png")
 
 		// Should have formal button styling
-		assert.Contains(t, mailopts.HTMLMessage, "background-color: #1973ff")
+		assert.Contains(t, mailopts.HTMLMessage, "background-color: #eb0a1e")
 		assert.Contains(t, mailopts.HTMLMessage, "width:280px")
 
 		// Should not have conversational arrow

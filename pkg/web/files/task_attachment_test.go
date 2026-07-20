@@ -36,11 +36,13 @@ func TestBuildUploadResult(t *testing.T) {
 		}
 	})
 
-	t.Run("plain error has no code, just the message", func(t *testing.T) {
+	t.Run("plain error has no code, just a generic message", func(t *testing.T) {
+		// Untyped errors are storage failures whose text can carry internal file
+		// paths, so toAttachmentUploadError deliberately does not pass it through.
 		r := BuildUploadResult(nil, []error{errors.New("boom")})
 		if assert.Len(t, r.Errors, 1) {
 			assert.Zero(t, r.Errors[0].Code)
-			assert.Equal(t, "boom", r.Errors[0].Message)
+			assert.Equal(t, "Could not save the attachment.", r.Errors[0].Message)
 		}
 	})
 
@@ -49,8 +51,8 @@ func TestBuildUploadResult(t *testing.T) {
 		r := BuildUploadResult(success, []error{errors.New("first"), errors.New("second")})
 		assert.Equal(t, success, r.Success)
 		if assert.Len(t, r.Errors, 2) {
-			assert.Equal(t, "first", r.Errors[0].Message)
-			assert.Equal(t, "second", r.Errors[1].Message)
+			assert.Equal(t, "Could not save the attachment.", r.Errors[0].Message)
+			assert.Equal(t, "Could not save the attachment.", r.Errors[1].Message)
 		}
 	})
 }

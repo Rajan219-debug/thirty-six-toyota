@@ -196,6 +196,10 @@ func DeleteUser(s *xorm.Session, u *user.User) (err error) {
 // unbound-session writes to it (see callers) satisfy the RLS WITH CHECK
 // policy. No-op unless multi-tenancy enforcement is on.
 func pinSessionToProjectTenant(s *xorm.Session, projectID int64) error {
+	if !db.MultiTenancyEnforced() {
+		return nil
+	}
+
 	var tenantID int64
 	has, err := s.SQL("SELECT tenant_id FROM projects WHERE id = ?", projectID).Get(&tenantID)
 	if err != nil {
