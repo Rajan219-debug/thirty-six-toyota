@@ -1409,7 +1409,8 @@ h3 .button {
 
 	.detail-title {
 		display: block;
-		color: var(--grey-400);
+		// --grey-400 is ~2.3:1 on this panel's bg — --grey-600 clears 4.5:1.
+		color: var(--grey-600);
 	}
 
 	.none {
@@ -1505,7 +1506,9 @@ h3 .button {
 			box-shadow: none;
 
 			&.is-pending {
-				color: var(--success);
+				// var(--success) is only ~1.7:1 as text here — same hue/sat at
+				// a lower lightness clears 4.5:1.
+				color: hsl(var(--success-h), var(--success-s), 25%);
 
 				&:hover,
 				&:focus {

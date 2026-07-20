@@ -240,6 +240,12 @@ onMounted(async () => {
 .admin-overview__hint {
 	color: var(--grey-600);
 	margin-inline-start: 0.25rem;
+
+	// Bulma's .has-text-danger sets color with !important at ~3.5:1 on
+	// white; --danger-text-l is the same fix Button.vue uses for danger text.
+	&.has-text-danger {
+		color: hsl(var(--danger-h) var(--danger-s) var(--danger-text-l)) !important;
+	}
 }
 
 .admin-overview__card-action {

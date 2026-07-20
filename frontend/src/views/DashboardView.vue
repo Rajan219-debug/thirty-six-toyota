@@ -305,8 +305,14 @@ $tst-green: #1a8a4f;
 $tst-amber: #c8860a;
 
 @keyframes tst-rise {
-	from { opacity: 0; transform: translateY(14px); }
-	to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .tst-dash {
@@ -359,7 +365,7 @@ $tst-amber: #c8860a;
 		font-size: 1.9rem;
 		font-weight: 700;
 		letter-spacing: -.015em;
-		color: #fff;
+		color: #ffffff;
 		margin: 0;
 	}
 
@@ -434,9 +440,20 @@ $tst-amber: #c8860a;
 		box-shadow: 0 8px 20px rgba(0, 0, 0, .07);
 	}
 
-	&--info    { --accent: #{$tst-navy};  --accent-soft: rgba(27, 79, 138, .10); }
-	&--success { --accent: #{$tst-green}; --accent-soft: rgba(26, 138, 79, .10); }
-	&--warning { --accent: #{$tst-amber}; --accent-soft: rgba(200, 134, 10, .10); }
+	&--info {
+		--accent: #{$tst-navy};
+		--accent-soft: rgba(27, 79, 138, .10);
+	}
+
+	&--success {
+		--accent: #{$tst-green};
+		--accent-soft: rgba(26, 138, 79, .10);
+	}
+
+	&--warning {
+		--accent: #{$tst-amber};
+		--accent-soft: rgba(200, 134, 10, .10);
+	}
 
 	&--danger {
 		--accent: #{$tst-red};
@@ -588,10 +605,6 @@ $tst-amber: #c8860a;
 		white-space: nowrap;
 	}
 
-	&__task {
-		white-space: normal;
-	}
-
 	thead th {
 		font-family: $tst-mono-font;
 		font-size: .68rem;
@@ -614,6 +627,7 @@ $tst-amber: #c8860a;
 	}
 
 	&__task {
+		white-space: normal;
 		font-weight: 600;
 		color: var(--grey-900);
 	}

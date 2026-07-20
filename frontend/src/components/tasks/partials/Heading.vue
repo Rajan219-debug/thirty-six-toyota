@@ -201,7 +201,8 @@ async function cancel(element: HTMLInputElement) {
 }
 
 .title.task-id {
-	color: var(--grey-400);
+	// --grey-400 is ~2.3:1 on this panel's bg — --grey-600 clears it.
+	color: var(--grey-600);
 	white-space: nowrap;
 }
 

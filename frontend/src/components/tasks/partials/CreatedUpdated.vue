@@ -63,7 +63,8 @@ const doneFormatted = computed(() => formatDateLong(props.task.doneAt))
 <style lang="scss" scoped>
 .created {
 	font-size: .75rem;
-	color: var(--grey-500);
+	// --grey-500 lands at 4.39:1 here, just under the 4.5:1 threshold.
+	color: var(--grey-600);
 	text-align: end;
 }
 </style>
