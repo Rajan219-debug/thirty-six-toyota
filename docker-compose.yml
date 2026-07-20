@@ -42,6 +42,26 @@ services:
       VIKUNJA_RATELIMIT_KIND: user
       VIKUNJA_RATELIMIT_LIMIT: 100
       VIKUNJA_RATELIMIT_PERIOD: 60
+      # Without this, the app reads the raw TCP peer as the client IP, which
+      # behind Caddy is always Caddy's own container address: every real
+      # visitor collapses into one shared IP, so the per-IP auth rate limiter
+      # (login/register/password-reset brute-force protection) shares one
+      # budget across every user — one attacker hammering /login can lock out
+      # the whole dealership.
+      #
+      # 172.16.0.0/12 covers Docker's default bridge range, which includes
+      # both Caddy's container IP and the bridge gateway IP (host-to-
+      # published-port traffic is NATed through the gateway, so it presents
+      # the same way) — verified live: hitting this port directly from the
+      # host also gets its X-Forwarded-For trusted, not just genuine
+      # Caddy→vikunja traffic. That's not exploitable *remotely* — this
+      # port is bound to 127.0.0.1 only (see below), never published, so
+      # reaching that path at all already requires local code execution on
+      # the VPS, a far bigger compromise than spoofing a rate-limit key. But
+      # don't read this CIDR as "only Caddy can be the peer"; the loopback
+      # bind is the actual control that makes this safe, not the CIDR.
+      VIKUNJA_SERVICE_IPEXTRACTIONMETHOD: xff
+      VIKUNJA_SERVICE_TRUSTEDPROXIES: 172.16.0.0/12
       # Email. Task-assignment, reminders and closure notifications are e-mailed
       # to staff once this is on. Off by default — set VIKUNJA_MAILER_ENABLED=true
       # and the host/username/password (Gmail, SendGrid, or the dealership SMTP)

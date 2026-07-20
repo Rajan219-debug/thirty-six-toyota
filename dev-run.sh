@@ -77,7 +77,12 @@ taskkill //IM vikunja-mt-verify.exe //F >/dev/null 2>&1 || true
 export VIKUNJA_DATABASE_TYPE=postgres VIKUNJA_DATABASE_HOST=localhost:55432 \
 	VIKUNJA_DATABASE_USER=vikunja VIKUNJA_DATABASE_PASSWORD=vikunja VIKUNJA_DATABASE_DATABASE="$DB" \
 	VIKUNJA_SERVICE_ROOTPATH="$REPO" VIKUNJA_SERVICE_PUBLICURL="http://localhost:$PORT/" \
-	VIKUNJA_SERVICE_INTERFACE=":$PORT" VIKUNJA_SERVICE_ENABLEREGISTRATION=true
+	VIKUNJA_SERVICE_INTERFACE=":$PORT" VIKUNJA_SERVICE_ENABLEREGISTRATION=true \
+	VIKUNJA_SERVICE_SECRET="thirtysixtoyota-local-dev-fixed-secret-9c1f2a" \
+	VIKUNJA_RATELIMIT_NOAUTHLIMIT=1000
+	# ponytail: fixed dev secret so restarts don't invalidate everyone's session
+	# (random secret per boot => browser refresh-loop => 429). Raised no-auth
+	# limit so local test logins don't trip the 10/min cap. Dev-only, not prod.
 
 if [ "$WANT_MAIL" = "1" ]; then
 	export VIKUNJA_MAILER_ENABLED=1 VIKUNJA_MAILER_HOST=localhost VIKUNJA_MAILER_PORT=1025 \
