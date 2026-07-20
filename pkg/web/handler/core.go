@@ -23,13 +23,21 @@ import (
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/web"
+
+	"xorm.io/xorm"
 )
+
+// newSession opens a request transaction already bound to the caller's outlet,
+// so the RLS policies scope every query to their tenant.
+func newSession(a web.Auth) *xorm.Session {
+	return db.NewBoundSession(a.GetID())
+}
 
 // DoCreate runs the permission check + model Create + commit pipeline for a
 // CObject. Framework-agnostic: callable from both Echo (CreateWeb) and Huma.
 // Caller is responsible for body/path binding and validation before calling.
 func DoCreate(ctx context.Context, obj CObject, a web.Auth) error {
-	s := db.NewSession()
+	s := newSession(a)
 	defer func() {
 		if err := s.Close(); err != nil {
 			log.Errorf("Could not close session: %s", err)
@@ -69,7 +77,7 @@ func DoCreate(ctx context.Context, obj CObject, a web.Auth) error {
 // obj is fully populated. maxPermission is exposed via the x-max-permission
 // header in the Echo wrapper; Huma wrapper may ignore it.
 func DoReadOne(ctx context.Context, obj CObject, a web.Auth) (maxPermission int, err error) {
-	s := db.NewSession()
+	s := newSession(a)
 	defer func() {
 		if cerr := s.Close(); cerr != nil {
 			log.Errorf("Could not close session: %s", cerr)
@@ -109,7 +117,7 @@ func DoReadOne(ctx context.Context, obj CObject, a web.Auth) (maxPermission int,
 // interface, the result count, and total count. Pagination header math and
 // nil-slice normalization remain the caller's responsibility.
 func DoReadAll(ctx context.Context, obj CObject, a web.Auth, search string, page, perPage int) (result any, resultCount int, total int64, err error) {
-	s := db.NewSession()
+	s := newSession(a)
 	defer func() {
 		if cerr := s.Close(); cerr != nil {
 			log.Errorf("Could not close session: %s", cerr)
@@ -136,7 +144,7 @@ func DoReadAll(ctx context.Context, obj CObject, a web.Auth, search string, page
 // CObject. Framework-agnostic. Caller is responsible for body/path binding
 // and validation before calling.
 func DoUpdate(ctx context.Context, obj CObject, a web.Auth) error {
-	s := db.NewSession()
+	s := newSession(a)
 	defer func() {
 		if err := s.Close(); err != nil {
 			log.Errorf("Could not close session: %s", err)
@@ -175,7 +183,7 @@ func DoUpdate(ctx context.Context, obj CObject, a web.Auth) error {
 // CObject. Framework-agnostic. Caller is responsible for path binding before
 // calling.
 func DoDelete(ctx context.Context, obj CObject, a web.Auth) error {
-	s := db.NewSession()
+	s := newSession(a)
 	defer func() {
 		if err := s.Close(); err != nil {
 			log.Errorf("Could not close session: %s", err)

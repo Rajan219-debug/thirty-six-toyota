@@ -231,7 +231,8 @@ onMounted(loadMonth)
 		text-align: center;
 		font-size: .68rem;
 		font-weight: 600;
-		color: var(--grey-400);
+		// --grey-400 is ~2.5:1 on white — --grey-600 clears 4.5:1.
+		color: var(--grey-600);
 		padding-block-end: .4rem;
 	}
 
@@ -249,15 +250,21 @@ onMounted(loadMonth)
 
 		&:hover { background: var(--grey-100); }
 
-		&.is-muted { color: var(--grey-300); }
+		// --grey-300 is ~1.5:1 on white — --grey-600 clears 4.5:1 while
+		// staying visually lighter than the --grey-800 in-month days.
+		&.is-muted { color: var(--grey-600); }
 
 		&.is-today {
 			font-weight: 700;
-			color: var(--primary);
+			// var(--primary) text fails WCAG AA contrast here; same text-tuned
+			// shade used for links/active-nav-state elsewhere.
+			color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 		}
 
 		&.is-selected {
-			background: var(--primary);
+			// var(--primary) fails contrast with white text; --primary-dark is
+			// the same fix used for buttons.
+			background: var(--primary-dark);
 			color: #ffffff;
 		}
 	}
@@ -296,7 +303,8 @@ onMounted(loadMonth)
 
 	&__empty {
 		font-size: .8rem;
-		color: var(--grey-400);
+		// --grey-400 is ~2.5:1 on white — --grey-600 clears 4.5:1.
+		color: var(--grey-600);
 		font-style: italic;
 	}
 

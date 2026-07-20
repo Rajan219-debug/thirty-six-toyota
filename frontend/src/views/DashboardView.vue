@@ -551,7 +551,10 @@ $tst-amber: #c8860a;
 		gap: .3rem;
 		font-size: .8rem;
 		font-weight: 600;
-		color: #4d6077;
+		// was a hardcoded hex with no dark-mode variant; --grey-600 is a near
+		// match in light mode and correctly flips to a light, readable grey
+		// in dark mode.
+		color: var(--grey-600);
 	}
 
 	&__icon {
@@ -560,7 +563,8 @@ $tst-amber: #c8860a;
 	}
 
 	&__empty {
-		color: var(--grey-400);
+		// --grey-400 is ~2.5:1 on white — --grey-600 clears 4.5:1.
+		color: var(--grey-600);
 		font-style: italic;
 		font-size: .9rem;
 		padding: 1.5rem 1.25rem;
@@ -602,7 +606,10 @@ $tst-amber: #c8860a;
 		cursor: pointer;
 
 		&:hover { background: var(--grey-50); }
-		&:nth-child(even) { background: hsla(0, 0%, 97%, .5); }
+		// was a hardcoded near-white hsla() with no dark-mode variant — in dark
+		// mode that washed out to a mid-grey card that failed contrast against
+		// every text color drawn on it. var(--grey-50) is already theme-aware.
+		&:nth-child(even) { background: var(--grey-50); }
 		&:nth-child(even):hover { background: var(--grey-50); }
 	}
 

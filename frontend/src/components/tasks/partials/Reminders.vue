@@ -19,6 +19,7 @@
 				class="remove"
 				@click="removeReminderByIndex(index)"
 			>
+				<span class="is-sr-only">{{ $t('misc.remove') }}</span>
 				<Icon icon="times" />
 			</BaseButton>
 		</div>

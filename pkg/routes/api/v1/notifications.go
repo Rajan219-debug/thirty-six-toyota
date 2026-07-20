@@ -35,13 +35,13 @@ import (
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /notifications [post]
 func MarkAllNotificationsAsRead(c *echo.Context) error {
-	s := db.NewSession()
-	defer s.Close()
-
 	a, err := auth.GetAuthFromClaims(c)
 	if err != nil {
 		return err
 	}
+
+	s := db.NewBoundSession(a.GetID())
+	defer s.Close()
 
 	if _, is := a.(*models.LinkSharing); is {
 		return echo.ErrForbidden

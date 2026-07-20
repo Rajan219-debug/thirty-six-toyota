@@ -95,7 +95,12 @@ func authUserFromCtx(ctx context.Context, s *xorm.Session) (*user.User, error) {
 }
 
 func userDeletionRequest(ctx context.Context, in *userDeletionPasswordBody) (*emptyBody, error) {
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := authUserFromCtx(ctx, s)
@@ -123,7 +128,12 @@ func userDeletionRequest(ctx context.Context, in *userDeletionPasswordBody) (*em
 }
 
 func userDeletionConfirm(ctx context.Context, in *userDeletionConfirmBody) (*emptyBody, error) {
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := authUserFromCtx(ctx, s)
@@ -144,7 +154,12 @@ func userDeletionConfirm(ctx context.Context, in *userDeletionConfirmBody) (*emp
 }
 
 func userDeletionCancel(ctx context.Context, in *userDeletionPasswordBody) (*emptyBody, error) {
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	u, err := authUserFromCtx(ctx, s)

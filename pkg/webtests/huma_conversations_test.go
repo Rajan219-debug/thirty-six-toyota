@@ -28,8 +28,9 @@ import (
 
 func TestHumaConversations(t *testing.T) {
 	type conversationResp struct {
-		ID      int64 `json:"id"`
-		IsGroup bool  `json:"is_group"`
+		ID       int64 `json:"id"`
+		IsGroup  bool  `json:"is_group"`
+		IsUnread bool  `json:"is_unread"`
 	}
 	type conversationList struct {
 		Items []conversationResp `json:"items"`
@@ -109,6 +110,49 @@ func TestHumaConversations(t *testing.T) {
 		// outsider cannot send a message
 		rec = humaRequest(t, e, http.MethodPost, fmt.Sprintf("/api/v2/conversations/%d/messages", created.ID), `{"text":"let me in"}`, outsider, "")
 		assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
+	})
+
+	t.Run("unread flips true for the recipient, never for the sender, and clears on read", func(t *testing.T) {
+		e, err := setupTestEnv()
+		require.NoError(t, err)
+		user1 := humaTokenFor(t, &testuser1)
+		user2 := humaTokenFor(t, &testuser2)
+
+		findConversation := func(t *testing.T, token string, id int64) conversationResp {
+			t.Helper()
+			rec := humaRequest(t, e, http.MethodGet, "/api/v2/conversations", "", token, "")
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			var list conversationList
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &list))
+			for _, c := range list.Items {
+				if c.ID == id {
+					return c
+				}
+			}
+			require.Fail(t, "conversation not found in list", "id=%d", id)
+			return conversationResp{}
+		}
+
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/conversations", `{"member_ids":[2]}`, user1, "")
+		require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+		var created conversationResp
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &created))
+
+		// user1 sends the first message.
+		rec = humaRequest(t, e, http.MethodPost, fmt.Sprintf("/api/v2/conversations/%d/messages", created.ID), `{"text":"anyone around?"}`, user1, "")
+		require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+
+		// The sender never sees their own message as unread to themselves.
+		assert.False(t, findConversation(t, user1, created.ID).IsUnread, "sender should not see their own message as unread")
+
+		// The recipient hasn't read it yet.
+		assert.True(t, findConversation(t, user2, created.ID).IsUnread, "recipient should see an unread message")
+
+		// Fetching messages is how user2 "opens" the conversation.
+		rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/conversations/%d/messages", created.ID), "", user2, "")
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+		assert.False(t, findConversation(t, user2, created.ID).IsUnread, "reading the messages should clear the unread flag")
 	})
 
 	t.Run("a conversation needs at least one other member", func(t *testing.T) {

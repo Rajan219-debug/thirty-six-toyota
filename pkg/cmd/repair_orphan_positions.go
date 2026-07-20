@@ -46,7 +46,8 @@ Use --dry-run to preview what would be deleted without making changes.`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		s := db.NewSession()
+		// An instance-wide repair, not tied to one outlet.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		if dryRun {

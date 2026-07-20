@@ -505,6 +505,11 @@ const router = createRouter({
 					name: 'admin.projects',
 					component: () => import('@/views/admin/ProjectsView.vue'),
 				},
+				{
+					path: 'outlets',
+					name: 'admin.outlets',
+					component: () => import('@/views/admin/OutletsView.vue'),
+				},
 			],
 		},
 	],

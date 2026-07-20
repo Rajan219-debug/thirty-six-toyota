@@ -82,6 +82,9 @@ func notificationsAtomFeed(ctx context.Context, _ *struct{}) (*huma.StreamRespon
 	if u == nil {
 		return nil, basicAuthChallenge(c)
 	}
+	if err := db.BindTenantForUser(s, u.ID); err != nil {
+		return nil, translateDomainError(err)
+	}
 
 	atom, err := feeds.BuildNotificationsAtomFeed(s, u)
 	if err != nil {

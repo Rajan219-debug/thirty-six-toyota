@@ -48,17 +48,20 @@ func TestHumaAdminProjects(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, res.Code)
 	})
 
-	t.Run("admin without the feature gets 404", func(t *testing.T) {
+	t.Run("admin without a license still gets in", func(t *testing.T) {
 		e, err := setupTestEnv()
 		require.NoError(t, err)
-		// Empty feature set = licensed instance without the admin feature.
+		// Empty feature set = licensed instance without the admin feature —
+		// irrelevant here: the admin panel is permanently ungated in this
+		// Thirty Six Toyota fork (see license.IsFeatureEnabled), so a real
+		// admin gets through regardless.
 		license.SetForTests([]license.Feature{})
 		defer license.ResetForTests()
 
 		admin := promoteToAdmin(t, 1)
 
 		res := adminReq(t, e, http.MethodGet, "/api/v2/admin/projects", admin, "")
-		assert.Equal(t, http.StatusNotFound, res.Code)
+		assert.Equal(t, http.StatusOK, res.Code, "admin panel is ungated in this fork")
 	})
 
 	t.Run("admin with the feature sees every project", func(t *testing.T) {

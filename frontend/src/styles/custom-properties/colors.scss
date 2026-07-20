@@ -147,6 +147,10 @@
   --danger-light: hsla(var(--danger-h), var(--danger-s), var(--danger-light-l), var(--danger-a));
   --danger-dark-l: 43%;
   --danger-dark: hsla(var(--danger-h), var(--danger-s), var(--danger-dark-l), var(--danger-a));
+  // Lightness for --danger-colored TEXT specifically, same reasoning as
+  // --primary-text-l: --danger-l itself is tuned for solid button
+  // backgrounds, not text contrast. Dark mode overrides this below.
+  --danger-text-l: 40%;
   --input-color: var(--text-strong, #363636);
   --input-background-color: var(--scheme-main, white);
   //--input-border-color: var(--border, #dbdbdb);
@@ -242,8 +246,15 @@
   --primary-a: 1;
   --primary-hsl: var(--primary-h), var(--primary-s), var(--primary-l);
   --primary: hsla(var(--primary-h), var(--primary-s), var(--primary-l), var(--primary-a));
+  // Lightness for --primary-colored TEXT specifically (links, active nav state).
+  // --primary itself is tuned for icons/borders/backgrounds, not text contrast —
+  // at --primary-l text fails WCAG AA (~2.3:1 on white). Dark mode overrides this
+  // below to a much lighter value, since the same text now sits on a dark background.
+  --primary-text-l: 30%;
 
-  --link: var(--primary);
+  // Uses --primary-text-l (see above), not --primary directly — --primary
+  // alone fails contrast as link text (~2.3:1 on white).
+  --link: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
   --link-hover: hsla(var(--primary-h), var(--primary-s), var(--primary-l), .75);
   --border: var(--grey-200);
   --input-disabled-background-color: var(--grey-100);
@@ -285,8 +296,12 @@
       --grey-600: hsl(216, 12.2%, 83.9%);
       --grey-500-hsl: 217.9, 10.6%, 64.9%;
       --grey-500: hsl(var(--grey-500-hsl));
-      --grey-400: hsl(220, 8.9%, 46.1%);
-      --grey-300: hsl(215, 13.8%, 34.1%);
+      // Lightened from the "reversed light-mode" values (46.1%/34.1%): those
+      // fail WCAG AA (~3.7:1 / ~2.3:1) as muted text against this dark
+      // background — bumped just enough to clear 4.5:1 while keeping grey-300
+      // visibly darker/more muted than grey-400.
+      --grey-400: hsl(220, 8.9%, 60%);
+      --grey-300: hsl(215, 13.8%, 52%);
       --grey-200: hsl(216.9, 19.1%, 26.7%);
       --grey-100-hsl: 215, 27.9%, 16.9%;
       --grey-100: hsl(var(--grey-100-hsl));
@@ -326,6 +341,12 @@
       --primary-h: 217deg;
       --primary-s: 98%;
       --primary-l: 58%;
+      // Text needs to be much lighter than --primary-l against a dark background
+      // (the light-mode --primary-text-l of 30% would be nearly invisible here).
+      --primary-text-l: 65%;
+      // Same reasoning as --primary-text-l: --danger-l is too dark to read
+      // as text against a dark background, needs a lighter shade here.
+      --danger-text-l: 70%;
 
       --scheme-main-bis: var(--grey-100);
       --scheme-main-ter: var(--grey-100);
@@ -334,7 +355,9 @@
       --scheme-invert-ter: var(--grey-800);
 
       // Code colors
-      --code-variable: #f98181;
+      // Lightened slightly from #f98181 — that shade fell just short of
+      // WCAG AA contrast (4.16:1) against the code block's background.
+      --code-variable: #fca5a5;
       --code-literal: #fbbc88;
       --code-symbol: #b9f18d;
       --code-section: #faf594;

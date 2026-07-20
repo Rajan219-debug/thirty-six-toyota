@@ -51,7 +51,7 @@ func dashboardStats(ctx context.Context, _ *struct{}) (*dashboardStatsBody, erro
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	stats, err := models.GetDashboardStats(s, a)
 	if err != nil {

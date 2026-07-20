@@ -185,8 +185,11 @@ func TestTaskAccountabilityV2(t *testing.T) {
 		e, err := setupTestEnv()
 		require.NoError(t, err)
 		// user2 is assigned to fixture tasks 30 (no due date), 35 (no due
-		// date), and 36 (due 2018, overdue). With urgency and importance
-		// unset, 36 scores 0.4*5 = 2.0 (do_soon); 30 and 35 score 0 (do_later).
+		// date), and 36 (due 2018, overdue). Unrated urgency/importance score
+		// as the neutral middle (CalculatePriorityScore's priorityUnratedDefault,
+		// see commit 3fae32c), so 36 scores 0.3*3 + 0.3*3 + 0.4*5 = 3.8
+		// (do_now); 30 and 35 (no due date, so deadline proximity is 0) score
+		// 0.3*3 + 0.3*3 = 1.8 (do_later).
 		token := humaTokenFor(t, &testuser2)
 
 		rec := humaRequest(t, e, http.MethodGet, "/api/v2/tasks/prioritized", ``, token, "")
@@ -205,8 +208,8 @@ func TestTaskAccountabilityV2(t *testing.T) {
 			}
 			return
 		}
-		assert.Empty(t, resp.DoNow)
-		assert.Contains(t, ids(resp.DoSoon), int64(36))
+		assert.Contains(t, ids(resp.DoNow), int64(36))
+		assert.Empty(t, resp.DoSoon)
 		assert.Contains(t, ids(resp.DoLater), int64(30))
 		assert.Contains(t, ids(resp.DoLater), int64(35))
 	})

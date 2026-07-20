@@ -1,13 +1,25 @@
 <template>
 	<div class="no-auth-wrapper">
+		<div
+			class="no-auth-wrapper__aura"
+			aria-hidden="true"
+		/>
 		<main
 			id="main-content"
 			class="noauth-card"
 		>
+			<div
+				class="noauth-card__accent"
+				aria-hidden="true"
+			/>
 			<header class="noauth-card__header">
-				<Logo class="noauth-card__logo" />
+				<div class="noauth-card__logo-plate">
+					<Logo class="noauth-card__logo" />
+				</div>
 				<div class="noauth-card__rule" />
-				<span class="noauth-card__kicker">Internal Operations Portal</span>
+				<h1 class="noauth-card__kicker">
+					Internal Operations Portal
+				</h1>
 			</header>
 			<div class="noauth-card__body">
 				<Message v-if="motd !== ''">
@@ -76,25 +88,47 @@ useTitle(() => title.value)
 
 <style lang="scss" scoped>
 .no-auth-wrapper {
-	background-color: #f4f4f4;
-	background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, .04) 1px, transparent 0);
-	background-size: 32px 32px;
+	position: relative;
+	overflow: hidden;
 	min-block-size: 100vh;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 2rem 1rem;
+	padding: 2.5rem 1rem;
+	background:
+		radial-gradient(circle at 1px 1px, rgba(11, 31, 58, .05) 1px, transparent 0) 0 0 / 30px 30px,
+		linear-gradient(180deg, #eef3f9 0%, #f6f8fb 45%, #eaeff6 100%);
+}
+
+// Soft brand aura glowing behind the card.
+.no-auth-wrapper__aura {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background:
+		radial-gradient(58% 42% at 50% 8%, rgba(31, 143, 214, .20), transparent 70%),
+		radial-gradient(46% 40% at 88% 92%, rgba(11, 31, 58, .12), transparent 70%);
 }
 
 .noauth-card {
+	position: relative;
+	z-index: 1;
 	inline-size: 100%;
 	max-inline-size: 440px;
 	background-color: var(--white);
 	border: 1px solid var(--grey-200);
-	border-radius: $radius;
-	box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, .1));
+	border-radius: 18px;
+	box-shadow:
+		0 24px 60px -22px rgba(11, 31, 58, .38),
+		0 6px 18px -10px rgba(11, 31, 58, .18);
 	overflow: hidden;
+	animation: noauth-card-in .5s cubic-bezier(.2, .7, .2, 1) both;
+
+	&__accent {
+		block-size: 5px;
+		background: linear-gradient(90deg, var(--primary), #0b1f3a);
+	}
 
 	&__header {
 		padding: 2.25rem 2rem 1.5rem;
@@ -103,16 +137,29 @@ useTitle(() => title.value)
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		background: linear-gradient(180deg, rgba(31, 143, 214, .07), transparent 85%);
+	}
+
+	&__logo-plate {
+		display: grid;
+		place-items: center;
+		padding: .85rem 1.25rem;
+		margin-block-end: 1rem;
+		border-radius: 14px;
+		background: var(--white);
+		border: 1px solid var(--grey-200);
+		box-shadow: 0 8px 20px -12px rgba(11, 31, 58, .3);
 	}
 
 	&__logo {
-		margin-block-end: 1rem;
+		margin-block-end: 0;
 	}
 
 	&__rule {
 		inline-size: 3rem;
 		block-size: 3px;
-		background: var(--primary);
+		border-radius: 3px;
+		background: linear-gradient(90deg, var(--primary), #0b1f3a);
 		margin-block-end: 1rem;
 	}
 
@@ -120,7 +167,7 @@ useTitle(() => title.value)
 		font-family: $tst-mono-font;
 		font-size: .68rem;
 		font-weight: 600;
-		letter-spacing: .18em;
+		letter-spacing: .2em;
 		text-transform: uppercase;
 		color: var(--grey-500);
 	}
@@ -131,7 +178,9 @@ useTitle(() => title.value)
 }
 
 .noauth-trust {
-	margin-block-start: 2rem;
+	position: relative;
+	z-index: 1;
+	margin-block-start: 1.75rem;
 	text-align: center;
 	max-inline-size: 420px;
 
@@ -143,6 +192,7 @@ useTitle(() => title.value)
 		border-radius: 999px;
 		background: var(--white);
 		border: 1px solid var(--grey-200);
+		box-shadow: 0 6px 16px -10px rgba(11, 31, 58, .35);
 		font-family: $tst-mono-font;
 		font-size: .68rem;
 		font-weight: 600;
@@ -159,6 +209,24 @@ useTitle(() => title.value)
 		margin-block-start: .75rem;
 		font-size: .78rem;
 		color: var(--grey-500);
+	}
+}
+
+@keyframes noauth-card-in {
+	from {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.noauth-card {
+		animation: none;
 	}
 }
 </style>

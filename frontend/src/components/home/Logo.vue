@@ -60,7 +60,9 @@ const CustomLogo = computed(() => {
 	inline-size: 40px;
 	block-size: 40px;
 	border-radius: 9px;
-	background: var(--primary);
+	// darker than --primary: white text on the full-brightness brand blue
+	// fails WCAG AA contrast (~2.4:1); this hits ~5.8:1.
+	background: hsl(var(--primary-h) var(--primary-s) 30%);
 	color: #ffffff;
 	font-weight: 800;
 	font-size: 1.2rem;
@@ -82,6 +84,8 @@ const CustomLogo = computed(() => {
 }
 
 .brand__line--accent {
-	color: var(--primary);
+	// same reasoning as .brand__badge above: full-brightness --primary text
+	// on a light card background fails contrast, this darker shade passes.
+	color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 }
 </style>

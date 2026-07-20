@@ -46,6 +46,8 @@
 		<section
 			v-if="baseStore.loading"
 			class="vikunja-loading"
+			role="region"
+			:aria-label="$t('ready.loading')"
 		>
 			<Logo class="logo" />
 			<p>

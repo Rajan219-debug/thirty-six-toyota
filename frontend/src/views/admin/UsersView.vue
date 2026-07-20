@@ -29,7 +29,9 @@
 							<th>{{ $t('admin.users.issuer') }}</th>
 							<th>{{ $t('admin.users.status') }}</th>
 							<th>{{ $t('task.attributes.created') }}</th>
-							<th />
+							<th>
+								<span class="is-sr-only">{{ $t('misc.actions') }}</span>
+							</th>
 						</tr>
 					</thead>
 					<tbody>

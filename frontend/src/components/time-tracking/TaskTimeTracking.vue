@@ -11,9 +11,9 @@
 			:shadow="false"
 			@click="showForm = !showForm"
 		/>
-		<h3 class="title is-5">
+		<h2 class="title is-5">
 			{{ $t('timeTracking.title') }}
-		</h3>
+		</h2>
 		<TimeEntryForm
 			v-if="formVisible"
 			:task-id="taskId"

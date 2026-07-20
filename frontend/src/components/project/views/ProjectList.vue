@@ -54,7 +54,7 @@
 						:group="{name: 'tasks', put: false}"
 						:disabled="!canDragTasks || !isPositionSorting"
 						item-key="id"
-						tag="ul"
+						tag="div"
 						:component-data="{
 							class: {
 								tasks: true,

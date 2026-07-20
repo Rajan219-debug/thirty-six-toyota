@@ -92,6 +92,10 @@ func createBenchmarkData(b *testing.B, needle string) *user.User {
 		}
 	}
 
+	if err := s.Commit(); err != nil {
+		b.Fatalf("commit benchmark data: %v", err)
+	}
+
 	return u
 }
 

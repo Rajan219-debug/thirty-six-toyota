@@ -200,6 +200,12 @@ func NewEcho() *echo.Echo {
 	// panic recover
 	e.Use(middleware.Recover())
 
+	// Security headers: X-Content-Type-Options: nosniff keeps browsers from
+	// content-sniffing responses into a different (executable) type — the
+	// last layer under the attachment-disposition downloads; X-Frame-Options
+	// blocks clickjacking via framing.
+	e.Use(middleware.Secure())
+
 	// Normalize PHP-style `foo[]=...` query params to `foo=...` before any
 	// handler binds them. Runs globally so both /api/v1 and /api/v2 benefit.
 	e.Use(vmiddleware.NormalizeArrayParams())
@@ -436,6 +442,11 @@ func gateV2AdminRoutes() echo.MiddlewareFunc {
 // resource handlers' stack; unauthenticatedAPIPaths keeps them public.
 func registerAPIRoutesV2(e *echo.Echo, a *echo.Group) {
 	a.Use(noStoreCacheControl())
+	// v2 exposes the same auth endpoints as v1 (login, register, password
+	// reset, …); they draw from the same shared per-IP budget + per-account
+	// backoff so an attacker can't double-dip across API versions. Must run
+	// before the token middleware: these paths are unauthenticated.
+	a.Use(AuthRouteRateLimit(getAuthIPRateLimiter(), false))
 	a.Use(SetupTokenMiddleware())
 	// Match the authenticated v1 group: rate limiting and route metrics
 	// apply to v2 resource endpoints too.
@@ -472,8 +483,14 @@ func registerAPIRoutes(a *echo.Group) {
 
 	// This is the group with no auth
 	// It is its own group to be able to rate limit this based on different heuristics
+	// Public tier: moderate per-IP limit, own knobs (publiclimit/publicperiod).
 	n := a.Group("")
-	setupRateLimit(n, "ip")
+	if config.RateLimitEnabled.GetBool() {
+		n.Use(RateLimit(createRateLimiter(limiter.Rate{
+			Period: config.RateLimitPublicRoutesPeriod.GetDuration() * time.Second,
+			Limit:  config.RateLimitPublicRoutesLimit.GetInt64(),
+		}), "ip"))
+	}
 
 	// Docs
 	n.GET("/docs.json", apiv1.DocsJSON)
@@ -486,14 +503,11 @@ func registerAPIRoutes(a *echo.Group) {
 	// Prometheus endpoint
 	setupMetrics(n)
 
-	// Separate route for unauthenticated routes to enable rate limits for it
+	// Separate group for the unauthenticated auth routes: strict per-IP window
+	// plus per-account exponential backoff on credential failures (see
+	// auth_rate_limit.go). Always on, unlike the opt-in general rate limit.
 	ur := a.Group("")
-	rate := limiter.Rate{
-		Period: 60 * time.Second,
-		Limit:  config.RateLimitNoAuthRoutesLimit.GetInt64(),
-	}
-	rateLimiter := createRateLimiter(rate)
-	ur.Use(RateLimit(rateLimiter, "ip"))
+	ur.Use(AuthRouteRateLimit(getAuthIPRateLimiter(), true))
 
 	if config.AuthLocalEnabled.GetBool() {
 		ur.POST("/register", apiv1.RegisterUser)

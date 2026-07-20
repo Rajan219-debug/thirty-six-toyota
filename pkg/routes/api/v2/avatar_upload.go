@@ -72,7 +72,7 @@ func avatarUpload(ctx context.Context, in *avatarUploadInput) (*avatarUploadBody
 		return nil, huma.Error403Forbidden("only users can upload an avatar")
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(authUser.ID)
 	defer s.Close()
 
 	// Re-fetch the full user: the auth user from the JWT claims is partial.

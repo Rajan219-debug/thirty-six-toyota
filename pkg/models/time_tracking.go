@@ -45,7 +45,7 @@ type TimeEntry struct {
 	StartTime time.Time  `xorm:"not null INDEX" json:"start_time" doc:"When the tracked time started."`
 	EndTime   *time.Time `xorm:"null" json:"end_time" doc:"When the tracked time ended. Null means a live timer is still running."`
 
-	Comment string `xorm:"text null" json:"comment" doc:"An optional comment describing the logged time."`
+	Comment string `xorm:"text null" json:"comment" valid:"runelength(0|8000)" maxLength:"8000" doc:"An optional comment describing the logged time. At most 8000 characters."`
 
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"A timestamp when this time entry was created. You cannot change this value."`
 	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"A timestamp when this time entry was last updated. You cannot change this value."`

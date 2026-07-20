@@ -20,6 +20,7 @@
 				:class="{'is-favorite': project.isFavorite}"
 				@click.prevent.stop="projectStore.toggleProjectFavorite(project)"
 			>
+				<span class="is-sr-only">{{ project.isFavorite ? $t('project.unfavorite') : $t('project.favorite') }}</span>
 				<Icon :icon="project.isFavorite ? 'star' : ['far', 'star']" />
 			</BaseButton>
 		</div>

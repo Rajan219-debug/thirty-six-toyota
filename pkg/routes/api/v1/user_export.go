@@ -38,6 +38,10 @@ func checkExportRequest(c *echo.Context) (s *xorm.Session, u *user.User, err err
 		s.Close()
 		return nil, nil, err
 	}
+	if err := db.BindTenantForUser(s, u.ID); err != nil {
+		s.Close()
+		return nil, nil, err
+	}
 
 	// Users authenticated with a third-party are unable to provide their password.
 	if u.Issuer != user.IssuerLocal {
@@ -163,6 +167,9 @@ func GetUserExportStatus(c *echo.Context) error {
 
 	u, err := user.GetCurrentUserFromDB(s, c)
 	if err != nil {
+		return err
+	}
+	if err := db.BindTenantForUser(s, u.ID); err != nil {
 		return err
 	}
 

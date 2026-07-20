@@ -17,6 +17,7 @@
 package models
 
 import (
+	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
@@ -43,6 +44,24 @@ func ReassignProjectOwner(s *xorm.Session, doer *user.User, projectID, newOwnerI
 	}
 	if !newOwner.DeletionScheduledAt.IsZero() {
 		return nil, ErrInvalidData{Message: "new owner is scheduled for deletion"}
+	}
+
+	// tenant_id is deliberately absent from the Project struct (the ORM never
+	// touches it), so it's read directly here to pin the write to the project's
+	// own outlet — required because this update doesn't change tenant_id, but
+	// the RLS policy's WITH CHECK still needs it to match app.current_tenant.
+	// Gated on enforcement: the column only exists once EnsureTenantColumns has
+	// run against a real Postgres deployment, so unconditionally querying it
+	// breaks any environment that hasn't (e.g. this package's own test suite,
+	// which syncs schema directly from the Go structs).
+	if db.MultiTenancyEnforced() {
+		var tenantID int64
+		if _, err := s.SQL("SELECT tenant_id FROM projects WHERE id = ?", p.ID).Get(&tenantID); err != nil {
+			return nil, err
+		}
+		if err := db.PinSessionTenant(s, tenantID); err != nil {
+			return nil, err
+		}
 	}
 
 	oldOwnerID := p.OwnerID
@@ -74,5 +93,9 @@ func ReassignProjectOwner(s *xorm.Session, doer *user.User, projectID, newOwnerI
 // @Failure 404 {object} web.HTTPError
 // @Router /admin/projects [get]
 func (l *AdminProjectList) ReadAll(s *xorm.Session, _ web.Auth, search string, page, perPage int) (interface{}, int, int64, error) {
+	// The session arrives bound to the acting admin's own outlet (the generic
+	// CRUDable pipeline binds every request session); elevate it so "every
+	// project on the instance" is not silently narrowed to one outlet.
+	db.ElevateSessionToHQ(s)
 	return ListAllProjects(s, search, page, perPage, true)
 }

@@ -9,6 +9,7 @@ export interface IConversation extends IAbstract {
 	memberIds: number[]
 	members: IUser[]
 	lastMessage: IChatMessage | null
+	isUnread: boolean
 	createdBy: IUser
 	created: Date
 	updated: Date

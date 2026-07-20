@@ -430,6 +430,272 @@ func isSystemDirectory(path string) bool {
 	return false
 }
 
+// tenantGlobalTables lists tables that must NOT carry a tenant_id: ephemeral
+// auth artifacts (read before a tenant is known), shared caches, and global
+// bookkeeping. Everything else the app registers is tenant-scoped — including
+// users, which belongs to an outlet.
+var tenantGlobalTables = map[string]bool{
+	"sessions":        true, // auth session, looked up before tenant is known
+	"oauth_codes":     true, // oauth flow artifact
+	"totp":            true, // 2FA secret, keyed to a user
+	"user_tokens":     true, // email-confirm / password-reset tokens
+	"unsplash_photos": true, // shared stock-photo cache, not tenant data
+	"license_status":  true, // license service, deliberately untouched
+	"migration":       true, // xormigrate bookkeeping
+	"tenants":         true, // the outlet registry itself
+}
+
+// EnsureTenantColumns makes the schema multi-tenant-ready, idempotently, on
+// every boot: it creates the tenants (outlet) registry, seeds a default outlet,
+// and adds a tenant_id column to every scoped table. Because xormigrate's
+// InitSchema skips migrations on a fresh install, this runs here rather than as
+// a migration so both fresh installs and upgrades — and any table added later —
+// are covered by one mechanism. Postgres only; the tenancy model is enforced
+// with row-level security (armed in a later phase). Mirrors CreateParadeDBIndexes.
+func EnsureTenantColumns() error {
+	if x.Dialect().URI().DBType != schemas.POSTGRES {
+		return nil
+	}
+
+	if _, err := x.Exec(`CREATE TABLE IF NOT EXISTS tenants (
+		id bigserial PRIMARY KEY,
+		name varchar(250) NOT NULL,
+		slug varchar(100) NOT NULL UNIQUE,
+		created timestamptz NOT NULL DEFAULT now(),
+		updated timestamptz NOT NULL DEFAULT now()
+	)`); err != nil {
+		return fmt.Errorf("could not ensure tenants table: %w", err)
+	}
+
+	// Seed the default outlet if empty. Inserting without an explicit id lets
+	// the serial sequence advance, so app-created outlets don't collide with 1.
+	if _, err := x.Exec(`INSERT INTO tenants (name, slug, created, updated)
+		SELECT 'Thirty Six Toyota', 'default', now(), now()
+		WHERE NOT EXISTS (SELECT 1 FROM tenants)`); err != nil {
+		return fmt.Errorf("could not seed default tenant: %w", err)
+	}
+
+	// tenant_id on every scoped table. DEFAULT 1 backfills existing rows to the
+	// default outlet in the same statement (no rewrite on PG 11+); NOT NULL + FK
+	// keep it honest. Derived from the live registry so no table is missed.
+	for _, table := range RegisteredTableNames() {
+		if tenantGlobalTables[table] {
+			continue
+		}
+		if _, err := x.Exec(fmt.Sprintf(
+			`ALTER TABLE %q ADD COLUMN IF NOT EXISTS tenant_id bigint NOT NULL DEFAULT 1 REFERENCES tenants(id)`,
+			table)); err != nil {
+			return fmt.Errorf("could not add tenant_id to %s: %w", table, err)
+		}
+		if _, err := x.Exec(fmt.Sprintf(
+			`CREATE INDEX IF NOT EXISTS %q ON %q (tenant_id)`,
+			"idx_"+table+"_tenant_id", table)); err != nil {
+			return fmt.Errorf("could not index tenant_id on %s: %w", table, err)
+		}
+	}
+
+	// is_hq marks HQ / group-manager accounts, which read across all outlets
+	// (their writes stay pinned to one outlet — see the RLS WITH CHECK policy).
+	// users is RLS-exempt, so this column is read during auth to bind the session.
+	if _, err := x.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_hq boolean NOT NULL DEFAULT false`); err != nil {
+		return fmt.Errorf("could not add is_hq to users: %w", err)
+	}
+
+	// is_default marks the one outlet new users are created in (the tenant_id
+	// column defaults point at it). Exactly one outlet carries it; seed the
+	// lowest-id outlet if none is marked yet.
+	if _, err := x.Exec(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_default boolean NOT NULL DEFAULT false`); err != nil {
+		return fmt.Errorf("could not add is_default to tenants: %w", err)
+	}
+	if _, err := x.Exec(`UPDATE tenants SET is_default = true
+		WHERE id = (SELECT id FROM tenants ORDER BY id LIMIT 1)
+		AND NOT EXISTS (SELECT 1 FROM tenants WHERE is_default)`); err != nil {
+		return fmt.Errorf("could not seed default outlet flag: %w", err)
+	}
+	return nil
+}
+
+// SetTenantColumnDefault repoints the tenant_id column DEFAULT on every scoped
+// table (and the RLS-exempt users table) to the given outlet, so rows created
+// without a bound tenant land there. Called when the default outlet changes.
+// Postgres only.
+func SetTenantColumnDefault(s *xorm.Session, tenantID int64) error {
+	if Type() != schemas.POSTGRES {
+		return nil
+	}
+	for _, table := range RegisteredTableNames() {
+		if tenantGlobalTables[table] {
+			continue
+		}
+		if _, err := s.Exec(fmt.Sprintf(
+			`ALTER TABLE %q ALTER COLUMN tenant_id SET DEFAULT %d`, table, tenantID)); err != nil {
+			return fmt.Errorf("could not set tenant_id default on %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
+// tenantBinding is the per-user tenancy context read from the RLS-exempt users
+// table to bind a request's transaction.
+type tenantBinding struct {
+	TenantID int64 `xorm:"tenant_id"`
+	IsHQ     bool  `xorm:"is_hq"`
+}
+
+// BindTenantForUser pins the given session's transaction to the outlet of the
+// given user by setting the app.current_tenant / app.is_hq GUCs that the RLS
+// policies read. Uses set_config(...,true) so the values are transaction-local
+// and never leak across pooled connections. No-op on non-Postgres and when the
+// id is not a user (e.g. a link share — resolved separately). Reads the
+// RLS-exempt users table, so it works before any tenant is bound.
+func BindTenantForUser(s *xorm.Session, userID int64) error {
+	if !MultiTenancyEnforced() || x.Dialect().URI().DBType != schemas.POSTGRES {
+		return nil
+	}
+	var b tenantBinding
+	has, err := s.SQL("SELECT tenant_id, is_hq FROM users WHERE id = ?", userID).Get(&b)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return nil
+	}
+	if _, err := s.Exec("SELECT set_config('app.current_tenant', ?, true)", strconv.FormatInt(b.TenantID, 10)); err != nil {
+		return err
+	}
+	hq := "off"
+	if b.IsHQ {
+		hq = "on"
+	}
+	_, err = s.Exec("SELECT set_config('app.is_hq', ?, true)", hq)
+	return err
+}
+
+// PinSessionTenant sets app.current_tenant to the given outlet on an
+// already-open session, without touching app.is_hq. Use before a write to a
+// specific row on behalf of an instance-admin action (e.g. reassigning a
+// project's owner) whose target may not belong to the acting admin's own
+// outlet: the RLS policy's WITH CHECK clause requires the written row's
+// tenant_id to match this GUC even when the write doesn't change tenant_id, so
+// an is_hq-only session (NewSystemSession) can read the row but not write it
+// without first pinning to that row's actual tenant. No-op unless enforcement
+// is on and the DB is Postgres.
+func PinSessionTenant(s *xorm.Session, tenantID int64) error {
+	if !MultiTenancyEnforced() || x.Dialect().URI().DBType != schemas.POSTGRES {
+		return nil
+	}
+	_, err := s.Exec("SELECT set_config('app.current_tenant', ?, true)", strconv.FormatInt(tenantID, 10))
+	return err
+}
+
+// NewBoundSession opens a request transaction already bound to the given user's
+// outlet, so the RLS policies scope every query to their tenant. Use this in
+// request handlers in place of NewSession. A binding error is logged, not fatal:
+// under RLS an unbound session sees zero rows (fail-safe hide, never a leak).
+func NewBoundSession(userID int64) *xorm.Session {
+	s := NewSession()
+	if err := BindTenantForUser(s, userID); err != nil {
+		log.Errorf("Could not bind tenant for user %d: %s", userID, err)
+	}
+	return s
+}
+
+// NewSystemSession opens a transaction that reads across all outlets
+// (app.is_hq = on). Use for background jobs, cron, and CLI tasks that
+// legitimately span every tenant — never for a request serving a single user.
+// Note: writes still need an explicit outlet — set app.current_tenant per row,
+// or the WITH CHECK policy rejects the insert.
+func NewSystemSession() *xorm.Session {
+	s := NewSession()
+	ElevateSessionToHQ(s)
+	return s
+}
+
+// ElevateSessionToHQ sets app.is_hq='on' on an already-open session, so its
+// SELECTs see every outlet's rows via the RLS policies' HQ clause. For an
+// existing request session (already bound to the caller's own outlet by
+// NewBoundSession) that legitimately needs to read across every tenant for
+// one query — e.g. an instance-admin listing — without losing the caller's
+// current_tenant (writes on unrelated rows in the same transaction should
+// still land in the caller's own outlet). No-op unless enforcement is on and
+// the DB is Postgres.
+func ElevateSessionToHQ(s *xorm.Session) {
+	if !MultiTenancyEnforced() || x.Dialect().URI().DBType != schemas.POSTGRES {
+		return
+	}
+	if _, err := s.Exec("SELECT set_config('app.is_hq', 'on', true)"); err != nil {
+		log.Errorf("Could not elevate session to HQ visibility: %s", err)
+	}
+}
+
+// rlsExemptTables carry a tenant_id column but get NO RLS policy: they are read
+// during authentication — by email / token / hash — before any tenant is bound,
+// so a policy would filter auth itself.
+var rlsExemptTables = map[string]bool{
+	"users":       true,
+	"api_tokens":  true,
+	"link_shares": true,
+}
+
+// MultiTenancyEnforced reports whether RLS enforcement is switched on. It gates
+// arming so tenant binding can be rolled out across every handler first —
+// arming while a handler is still unbound makes that handler see zero rows.
+// ponytail: env gate for the rollout; promote to a real config value once every
+// request path binds and enforcement is permanently on.
+func MultiTenancyEnforced() bool {
+	return os.Getenv("VIKUNJA_MULTITENANCY_ENFORCE") == "1"
+}
+
+// ArmTenantRLS enables FORCE row-level security and the tenant-isolation policy
+// on every scoped table, idempotently, and switches each tenant_id default to
+// the active outlet so inserts auto-tag correctly. No-op unless enforcement is
+// switched on and the db is Postgres. Auth-lookup and global tables are exempt.
+// The app DB role MUST be a non-superuser that does not bypass RLS (see the
+// plan) or this silently does nothing. Mirrors EnsureTenantColumns.
+func ArmTenantRLS() error {
+	if !MultiTenancyEnforced() || x.Dialect().URI().DBType != schemas.POSTGRES {
+		return nil
+	}
+
+	// Fail closed. RLS is silently bypassed by superusers and BYPASSRLS roles, so
+	// enforcing while connected as one would isolate NOTHING while looking healthy
+	// — every outlet would see every other outlet's data. Refuse to start instead
+	// of arming a policy that does nothing.
+	var canBypassRLS bool
+	if _, err := x.SQL("SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user").Get(&canBypassRLS); err != nil {
+		return fmt.Errorf("could not verify DB role privileges before arming RLS: %w", err)
+	}
+	if canBypassRLS {
+		log.Fatalf("Multi-tenancy enforcement is ON but the database role %q can bypass row-level security (it is a superuser or has BYPASSRLS). Outlet isolation would be SILENTLY DISABLED. Connect the app as a non-superuser, non-BYPASSRLS role (see docker/postgres-init).", config.DatabaseUser.GetString())
+		return nil // unreachable: Fatalf exits
+	}
+
+	for _, table := range RegisteredTableNames() {
+		if tenantGlobalTables[table] || rlsExemptTables[table] {
+			continue
+		}
+		// NULLIF(...,'') guards against a pooled connection whose transaction-local
+		// GUC has reverted to empty string (not NULL) after an earlier bound
+		// request — ''::bigint would otherwise throw. Empty → NULL → no rows match
+		// (fail-safe), and an unbound write is rejected by WITH CHECK.
+		stmts := []string{
+			fmt.Sprintf(`ALTER TABLE %q ENABLE ROW LEVEL SECURITY`, table),
+			fmt.Sprintf(`ALTER TABLE %q FORCE ROW LEVEL SECURITY`, table),
+			fmt.Sprintf(`ALTER TABLE %q ALTER COLUMN tenant_id SET DEFAULT NULLIF(current_setting('app.current_tenant', true), '')::bigint`, table),
+			fmt.Sprintf(`DROP POLICY IF EXISTS tenant_isolation ON %q`, table),
+			fmt.Sprintf(`CREATE POLICY tenant_isolation ON %q `+
+				`USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::bigint OR current_setting('app.is_hq', true) = 'on') `+
+				`WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::bigint)`, table),
+		}
+		for _, stmt := range stmts {
+			if _, err := x.Exec(stmt); err != nil {
+				return fmt.Errorf("could not arm RLS on %s: %w", table, err)
+			}
+		}
+	}
+	return nil
+}
+
 // WipeEverything wipes all Vikunja tables and their data. Use with caution...
 func WipeEverything() error {
 	for _, name := range RegisteredTableNames() {

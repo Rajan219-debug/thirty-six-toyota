@@ -359,7 +359,11 @@ func RegisterReminderCron() {
 	log.Debugf("[Task Reminder Cron] Timezone is %s", tz)
 
 	err := cron.Schedule("* * * * *", func() {
-		s := db.NewSession()
+		// A system-wide sweep: reminders span every outlet, so reads need
+		// is_hq visibility. Each per-user write below re-pins the session to
+		// that user's own outlet first, since the notification insert's RLS
+		// check requires tenant_id to match app.current_tenant.
+		s := db.NewSystemSession()
 		defer s.Close()
 
 		now := time.Now()

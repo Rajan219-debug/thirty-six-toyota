@@ -85,9 +85,9 @@ type Task struct {
 	// The task priority. Can be anything you want, it is possible to sort by this later.
 	Priority int64 `xorm:"bigint null" json:"priority"`
 	// Urgency input (1-5) feeding the automatic priority score, alongside importance and deadline proximity.
-	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
+	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" minimum:"0" maximum:"5" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
 	// Importance input (1-5) feeding the automatic priority score, alongside urgency and deadline proximity.
-	Importance int64 `xorm:"bigint null default 0" json:"importance" valid:"range(0|5)" doc:"How important this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with urgency and deadline proximity."`
+	Importance int64 `xorm:"bigint null default 0" json:"importance" valid:"range(0|5)" minimum:"0" maximum:"5" doc:"How important this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with urgency and deadline proximity."`
 	// Estimated effort for this task in seconds, set when planning. Compared against tracked time in the department estimates report.
 	EstimatedSeconds int64 `xorm:"bigint null default 0 'estimated_seconds'" json:"estimated_seconds" valid:"range(0|9223372036854775807)" doc:"Estimated effort in seconds. Compared against tracked time in the department estimates report."`
 	// The computed weighted priority score from urgency, importance, and deadline proximity. Not stored; recalculated on every read.
@@ -1205,13 +1205,12 @@ func UserCanApproveOverdueClosure(s *xorm.Session, ot *Task, a web.Auth) (bool, 
 // false and CompletionClaimedAt is stamped so the task moves into
 // "pending_confirmation" instead of closing, while any other field edits in
 // the same payload still go through via the caller's subsequent update.
+// The one exception is DueDate: on an already-overdue task a non-approver's
+// due-date change is forced back too, otherwise clearing/postponing the
+// deadline and then marking done would bypass the approval flow entirely.
 // If the actor IS an authorized approver, the completion is auto-confirmed.
 // Returns true if a closure claim was just recorded.
 func (t *Task) blockOverdueSelfClosure(s *xorm.Session, a web.Auth) (claimedNow bool, err error) {
-	if !t.Done {
-		return false, nil
-	}
-
 	ot, err := GetTaskByIDSimple(s, t.ID)
 	if err != nil {
 		return false, err
@@ -1224,6 +1223,16 @@ func (t *Task) blockOverdueSelfClosure(s *xorm.Session, a web.Auth) (claimedNow 
 	canApprove, err := UserCanApproveOverdueClosure(s, &ot, a)
 	if err != nil {
 		return false, err
+	}
+
+	// Lock the deadline of an overdue task against non-approvers: only someone
+	// who could approve the closure may grant an extension (or clear the date).
+	if !canApprove && !t.DueDate.Equal(ot.DueDate) {
+		t.DueDate = ot.DueDate
+	}
+
+	if !t.Done {
+		return false, nil
 	}
 
 	if canApprove {
@@ -1265,9 +1274,14 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 	// Old task has the stored reminders
 	ot.Reminders = reminders
 
-	// Update the assignees
-	if err := ot.updateTaskAssignees(s, t.Assignees, a); err != nil {
-		return err
+	// Update the assignees only when the caller explicitly passed a list.
+	// Assignees are read-only on the task body (see the struct field) and are
+	// normally managed via the dedicated /assignees endpoints; without this nil
+	// guard every task edit that omits assignees (e.g. marking done) wipes them.
+	if t.Assignees != nil {
+		if err := ot.updateTaskAssignees(s, t.Assignees, a); err != nil {
+			return err
+		}
 	}
 
 	// All columns to update in a separate variable to be able to add to them

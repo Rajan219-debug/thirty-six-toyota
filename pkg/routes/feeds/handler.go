@@ -94,7 +94,7 @@ func NotificationsAtomFeed(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	atom, err := BuildNotificationsAtomFeed(s, u)

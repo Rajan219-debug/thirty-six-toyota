@@ -196,6 +196,7 @@
 										class="remove"
 										@click="() => {task.dueDate = null;saveTask()}"
 									>
+										<span class="is-sr-only">{{ $t('misc.remove') }}</span>
 										<span class="icon is-small">
 											<Icon icon="times" />
 										</span>
@@ -250,6 +251,7 @@
 										class="remove"
 										@click="() => {task.startDate = null;saveTask()}"
 									>
+										<span class="is-sr-only">{{ $t('misc.remove') }}</span>
 										<span class="icon is-small">
 											<Icon icon="times" />
 										</span>
@@ -283,6 +285,7 @@
 										class="remove"
 										@click="() => {task.endDate = null;saveTask()}"
 									>
+										<span class="is-sr-only">{{ $t('misc.remove') }}</span>
 										<span class="icon is-small">
 											<Icon icon="times" />
 										</span>
@@ -331,6 +334,7 @@
 										class="remove"
 										@click="removeRepeatAfter"
 									>
+										<span class="is-sr-only">{{ $t('misc.remove') }}</span>
 										<span class="icon is-small">
 											<Icon icon="times" />
 										</span>
@@ -434,12 +438,12 @@
 						v-if="activeFields.relatedTasks"
 						class="content details mbe-0"
 					>
-						<h3>
+						<h2>
 							<span class="icon is-grey">
 								<Icon icon="sitemap" />
 							</span>
 							{{ $t('task.attributes.relatedTasks') }}
-						</h3>
+						</h2>
 						<RelatedTasks
 							:ref="e => setFieldRef('relatedTasks', e)"
 							:edit-enabled="canWrite"
@@ -455,12 +459,12 @@
 						v-if="activeFields.moveProject"
 						class="content details"
 					>
-						<h3>
+						<h2>
 							<span class="icon is-grey">
 								<Icon icon="list" />
 							</span>
 							{{ $t('task.detail.move') }}
-						</h3>
+						</h2>
 						<div class="field has-addons">
 							<div class="control is-expanded">
 								<ProjectSearch

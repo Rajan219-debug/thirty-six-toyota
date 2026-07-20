@@ -61,7 +61,10 @@ func PatchProjectOwner(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	// Instance-admin reassignment: the project or its new owner may belong to a
+	// different outlet than the acting admin's own. ReassignProjectOwner itself
+	// pins the write to the project's actual tenant (see admin_project_list.go).
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	p, err := models.ReassignProjectOwner(s, doer, id, body.OwnerID)

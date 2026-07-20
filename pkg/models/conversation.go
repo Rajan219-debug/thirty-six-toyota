@@ -36,11 +36,14 @@ type Conversation struct {
 	IsGroup bool `xorm:"bool not null default false" json:"is_group" doc:"Whether this is a group chat (3+ members) or a 1:1 direct message."`
 
 	// The ids of the other members to start this conversation with. Write-only — used on create.
-	MemberIDs []int64 `xorm:"-" json:"member_ids"`
+	MemberIDs []int64 `xorm:"-" json:"member_ids" maxItems:"50" doc:"The ids of the other members to start this conversation with. Write-only — used on create. Every id must be an existing user; at most 50 members."`
 	// The full member list of this conversation, including the creator.
 	Members []*user.User `xorm:"-" json:"members" readOnly:"true" doc:"The full member list of this conversation, including the creator."`
 	// The most recent message in this conversation, if any.
 	LastMessage *ChatMessage `xorm:"-" json:"last_message" readOnly:"true" doc:"The most recent message in this conversation, if any."`
+	// Whether the caller has unread messages in this conversation — true if
+	// the last message came in after they last fetched the message list.
+	IsUnread bool `xorm:"-" json:"is_unread" readOnly:"true" doc:"Whether the caller has unread messages in this conversation."`
 
 	CreatedByID int64 `xorm:"bigint not null" json:"-"`
 	// The user who started this conversation.
@@ -70,6 +73,23 @@ func (c *Conversation) Create(s *xorm.Session, a web.Auth) (err error) {
 	memberIDs := uniqueInt64s(c.MemberIDs)
 	if len(memberIDs) == 0 {
 		return ErrConversationNeedsMembers{}
+	}
+	// Huma enforces maxItems on the schema; re-check here so the v1-style
+	// pipeline (and any future caller) can't bypass it and mass-insert rows.
+	if len(memberIDs) > 50 {
+		return ErrConversationNeedsMembers{}
+	}
+
+	// Reject ids that aren't real users instead of silently creating ghost
+	// memberships that hydrateConversations would filter out on display.
+	members, err := user.GetUsersByIDs(s, memberIDs)
+	if err != nil {
+		return err
+	}
+	for _, id := range memberIDs {
+		if _, is := members[id]; !is {
+			return ErrConversationMemberDoesNotExist{UserID: id}
+		}
 	}
 
 	c.ID = 0
@@ -104,14 +124,14 @@ func (c *Conversation) ReadOne(s *xorm.Session, a web.Auth) (err error) {
 		return ErrConversationDoesNotExist{ConversationID: c.ID}
 	}
 
-	if err = c.loadMembers(s); err != nil {
+	if err = hydrateConversations(s, []*Conversation{c}); err != nil {
 		return
 	}
-	c.CreatedBy, err = user.GetUserByID(s, c.CreatedByID)
+	lastReadAt, err := getLastReadAt(s, c.ID, a.GetID())
 	if err != nil {
 		return
 	}
-	c.LastMessage, err = getLastMessage(s, c.ID)
+	c.IsUnread = conversationIsUnread(c.LastMessage, lastReadAt)
 	return
 }
 
@@ -121,16 +141,19 @@ func (c *Conversation) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, 
 		return []*Conversation{}, 0, 0, nil
 	}
 
-	conversationIDs := []int64{}
-	err = s.Table("conversation_members").
-		Where("user_id = ?", a.GetID()).
-		Cols("conversation_id").
-		Find(&conversationIDs)
+	memberships := []*ConversationMember{}
+	err = s.Where("user_id = ?", a.GetID()).Find(&memberships)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	if len(conversationIDs) == 0 {
+	if len(memberships) == 0 {
 		return []*Conversation{}, 0, 0, nil
+	}
+	conversationIDs := make([]int64, 0, len(memberships))
+	lastReadAtByConversation := make(map[int64]time.Time, len(memberships))
+	for _, m := range memberships {
+		conversationIDs = append(conversationIDs, m.ConversationID)
+		lastReadAtByConversation[m.ConversationID] = m.LastReadAt
 	}
 
 	conversations := []*Conversation{}
@@ -143,45 +166,76 @@ func (c *Conversation) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, 
 		return nil, 0, 0, err
 	}
 
+	if err = hydrateConversations(s, conversations); err != nil {
+		return nil, 0, 0, err
+	}
 	for _, conv := range conversations {
-		if err = conv.loadMembers(s); err != nil {
-			return nil, 0, 0, err
-		}
-		conv.CreatedBy, err = user.GetUserByID(s, conv.CreatedByID)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		conv.LastMessage, err = getLastMessage(s, conv.ID)
-		if err != nil {
-			return nil, 0, 0, err
-		}
+		conv.IsUnread = conversationIsUnread(conv.LastMessage, lastReadAtByConversation[conv.ID])
 	}
 
 	numberOfTotalItems, err = s.In("id", conversationIDs).Count(&Conversation{})
 	return conversations, len(conversations), numberOfTotalItems, err
 }
 
-func (c *Conversation) loadMembers(s *xorm.Session) error {
-	memberIDs := []int64{}
-	if err := s.Table("conversation_members").
-		Where("conversation_id = ?", c.ID).
-		Cols("user_id").
-		Find(&memberIDs); err != nil {
+// hydrateConversations fills in Members, CreatedBy and LastMessage for a
+// batch of conversations in a fixed small number of queries, regardless of
+// how many conversations are passed — not the three-per-conversation
+// (members, creator, last message) round trips this used to do in a loop,
+// which made listing conversations scale with query count, not row count.
+func hydrateConversations(s *xorm.Session, conversations []*Conversation) error {
+	if len(conversations) == 0 {
+		return nil
+	}
+
+	conversationIDs := make([]int64, len(conversations))
+	for i, conv := range conversations {
+		conversationIDs[i] = conv.ID
+	}
+
+	memberRows := []*ConversationMember{}
+	if err := s.In("conversation_id", conversationIDs).Find(&memberRows); err != nil {
 		return err
 	}
 
-	users, err := getUsersOrLinkSharesFromIDs(s, memberIDs)
+	memberIDsByConversation := make(map[int64][]int64, len(conversations))
+	allReferencedIDs := make([]int64, 0, len(memberRows)+len(conversations))
+	for _, m := range memberRows {
+		memberIDsByConversation[m.ConversationID] = append(memberIDsByConversation[m.ConversationID], m.UserID)
+		allReferencedIDs = append(allReferencedIDs, m.UserID)
+	}
+	for _, conv := range conversations {
+		allReferencedIDs = append(allReferencedIDs, conv.CreatedByID)
+	}
+
+	users, err := getUsersOrLinkSharesFromIDs(s, uniqueInt64s(allReferencedIDs))
 	if err != nil {
 		return err
 	}
 
-	c.Members = make([]*user.User, 0, len(memberIDs))
-	for _, id := range memberIDs {
-		if u, has := users[id]; has {
-			c.Members = append(c.Members, u)
+	lastMessages, err := getLastMessagesForConversations(s, conversationIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, conv := range conversations {
+		memberIDs := memberIDsByConversation[conv.ID]
+		conv.Members = make([]*user.User, 0, len(memberIDs))
+		for _, id := range memberIDs {
+			if u, has := users[id]; has {
+				conv.Members = append(conv.Members, u)
+			}
 		}
+		conv.CreatedBy = users[conv.CreatedByID]
+		conv.LastMessage = lastMessages[conv.ID]
 	}
 	return nil
+}
+
+// conversationIsUnread reports whether the last message came in after the
+// caller last read the conversation. No message yet is never unread; never
+// having read (the zero time) means any message counts as unread.
+func conversationIsUnread(lastMessage *ChatMessage, lastReadAt time.Time) bool {
+	return lastMessage != nil && lastMessage.Created.After(lastReadAt)
 }
 
 func uniqueInt64s(in []int64) []int64 {

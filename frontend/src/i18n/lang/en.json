@@ -765,7 +765,9 @@
     "imprint": "Imprint",
     "privacy": "Privacy Policy",
     "closeSidebar": "Close sidebar",
-    "home": "Thirty Six Toyota home"
+    "home": "Thirty Six Toyota home",
+    "mainMenu": "Main navigation",
+    "sectionMenu": "Section navigation"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -815,13 +817,15 @@
     },
     "checkIn": {
       "checkIn": "Check-In",
-      "checkOut": "Check-Out"
+      "checkOut": "Check-Out",
+      "selectProject": "Project to check into"
     }
   },
   "misc": {
     "loading": "Loading…",
     "save": "Save",
     "delete": "Delete",
+    "remove": "Remove",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "disable": "Disable",

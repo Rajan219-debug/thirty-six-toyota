@@ -31,6 +31,9 @@
 				]"
 				:style="{'--sidebar-width': sidebarWidth}"
 			>
+				<h1 class="is-sr-only">
+					{{ $t('navigation.home') }}
+				</h1>
 				<BaseButton
 					v-show="menuActive"
 					:aria-label="$t('navigation.closeSidebar')"

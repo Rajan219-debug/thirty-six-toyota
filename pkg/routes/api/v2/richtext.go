@@ -149,7 +149,12 @@ func convertToHTML(ctx context.Context, fields ...*string) error {
 		return nil
 	}
 
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	for _, field := range fields {

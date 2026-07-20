@@ -35,7 +35,8 @@ import (
 // @Failure 404 {object} web.HTTPError
 // @Router /admin/overview [get]
 func GetOverview(c *echo.Context) error {
-	s := db.NewSession()
+	// Per-instance counts must span every outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	overview, err := models.BuildOverview(s)

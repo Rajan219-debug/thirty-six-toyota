@@ -54,7 +54,7 @@ func UploadTaskAttachment(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(auth.GetID())
 	defer s.Close()
 
 	// Multipart form
@@ -120,7 +120,7 @@ func GetTaskAttachment(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(auth.GetID())
 	defer s.Close()
 
 	previewSize := models.GetPreviewSizeFromString(c.QueryParam("preview_size"))

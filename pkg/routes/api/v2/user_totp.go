@@ -142,7 +142,7 @@ func localUserFromCtx(ctx context.Context) (*user.User, *xorm.Session, error) {
 		return nil, nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	u, err := models.GetUserOrLinkShareUser(s, a)
 	if err != nil {
 		s.Close()

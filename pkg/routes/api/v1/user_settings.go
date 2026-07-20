@@ -53,7 +53,7 @@ func GetUserAvatarProvider(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	user, err := user2.GetUserWithEmail(s, &user2.User{ID: u.ID})
@@ -96,7 +96,7 @@ func ChangeUserAvatarProvider(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	user, err := user2.GetUserWithEmail(s, &user2.User{ID: u.ID})
@@ -150,7 +150,7 @@ func UpdateGeneralUserSettings(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	user, err := user2.GetUserWithEmail(s, &user2.User{ID: u.ID})

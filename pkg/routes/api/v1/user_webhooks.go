@@ -42,7 +42,7 @@ func GetUserWebhooks(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	ws := []*models.Webhook{}
@@ -100,7 +100,7 @@ func CreateUserWebhook(c *echo.Context) error {
 	w.UserID = u.ID
 	w.ProjectID = 0
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	if err := s.Begin(); err != nil {
@@ -144,7 +144,7 @@ func UpdateUserWebhook(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	can, err := w.CanUpdate(s, u)
@@ -196,7 +196,7 @@ func DeleteUserWebhook(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	can, err := w.CanDelete(s, u)

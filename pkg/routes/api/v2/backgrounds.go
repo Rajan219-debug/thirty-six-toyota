@@ -154,7 +154,8 @@ func backgroundUnsplashSearch(ctx context.Context, in *struct {
 	Q    string `query:"q" doc:"Search query; empty returns the featured wallpaper collection."`
 	Page int64  `query:"page" default:"1" minimum:"1" doc:"1-based page number."`
 }) (*backgroundSearchBody, error) {
-	if _, err := authFromCtx(ctx); err != nil {
+	a, err := authFromCtx(ctx)
+	if err != nil {
 		return nil, err
 	}
 
@@ -163,7 +164,7 @@ func backgroundUnsplashSearch(ctx context.Context, in *struct {
 		page = 1
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	p := &unsplash.Provider{}
@@ -190,7 +191,7 @@ func backgroundUnsplashSet(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	project := &models.Project{ID: in.ProjectID}
@@ -246,7 +247,7 @@ func backgroundUpload(ctx context.Context, in *backgroundUploadInput) (*singleBo
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	project := &models.Project{ID: in.ProjectID}
@@ -294,7 +295,7 @@ func backgroundGet(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	project := &models.Project{ID: in.ProjectID}
@@ -377,7 +378,7 @@ func backgroundRemove(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	project := &models.Project{ID: in.ProjectID}

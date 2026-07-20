@@ -188,7 +188,12 @@ func getProjectFromParam(c *echo.Context) (project *models.ProjectWithTasksAndBu
 		return &models.ProjectWithTasksAndBuckets{}, nil
 	}
 
-	s := db.NewSession()
+	u, err := getBasicAuthUserFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+
+	s := db.NewBoundSession(u.ID)
 	defer s.Close()
 
 	intParam, err := strconv.ParseInt(param, 10, 64)

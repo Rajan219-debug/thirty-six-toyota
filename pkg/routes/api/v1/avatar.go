@@ -20,6 +20,7 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
+	auth2 "code.vikunja.io/api/pkg/modules/auth"
 	"code.vikunja.io/api/pkg/modules/avatar"
 	"code.vikunja.io/api/pkg/user"
 
@@ -45,7 +46,12 @@ func GetAvatar(c *echo.Context) error {
 	// Get the username
 	username := c.Param("username")
 
-	s := db.NewSession()
+	a, err := auth2.GetAuthFromClaims(c)
+	if err != nil {
+		return err
+	}
+
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	size := c.QueryParam("size")
@@ -59,12 +65,12 @@ func GetAvatar(c *echo.Context) error {
 		}
 	}
 
-	a, mimeType, err := avatar.GetAvatarForUsername(s, username, sizeInt)
+	imgBytes, mimeType, err := avatar.GetAvatarForUsername(s, username, sizeInt)
 	if err != nil {
 		return err
 	}
 
-	return c.Blob(http.StatusOK, mimeType, a)
+	return c.Blob(http.StatusOK, mimeType, imgBytes)
 }
 
 // UploadAvatar uploads and sets a user avatar
@@ -82,13 +88,14 @@ func GetAvatar(c *echo.Context) error {
 // @Router /user/settings/avatar/upload [put]
 func UploadAvatar(c *echo.Context) (err error) {
 
-	s := db.NewSession()
-	defer s.Close()
-
 	uc, err := user.GetCurrentUser(c)
 	if err != nil {
 		return err
 	}
+
+	s := db.NewBoundSession(uc.ID)
+	defer s.Close()
+
 	u, err := user.GetUserByID(s, uc.ID)
 	if err != nil {
 		_ = s.Rollback()

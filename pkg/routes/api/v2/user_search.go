@@ -77,6 +77,14 @@ func usersSearch(ctx context.Context, in *struct {
 		_ = s.Rollback()
 		return nil, translateDomainError(err)
 	}
+	// The users table is RLS-exempt, so scope the global directory to the
+	// caller's outlet here (HQ sees all). The per-project search below is already
+	// outlet-scoped via project access.
+	users, err = models.FilterUsersByOutlet(s, a.GetID(), users)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
@@ -93,7 +101,7 @@ func projectUsersSearch(ctx context.Context, in *struct {
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	currentUser, err := models.GetUserOrLinkShareUser(s, a)

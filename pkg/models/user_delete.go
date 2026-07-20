@@ -41,7 +41,8 @@ func RegisterUserDeletionCron() {
 }
 
 func deleteUsers() {
-	s := db.NewSession()
+	// A system-wide sweep across every outlet's scheduled deletions.
+	s := db.NewSystemSession()
 	users := []*user.User{}
 	err := s.Where(builder.Lt{"deletion_scheduled_at": time.Now()}).
 		Find(&users)
@@ -66,7 +67,7 @@ func deleteUsers() {
 		}
 
 		func() {
-			us := db.NewSession()
+			us := db.NewSystemSession()
 			defer us.Close()
 
 			err = DeleteUser(us, u)
@@ -191,6 +192,21 @@ func DeleteUser(s *xorm.Session, u *user.User) (err error) {
 	return err
 }
 
+// pinSessionToProjectTenant pins s to the outlet that owns project id, so
+// unbound-session writes to it (see callers) satisfy the RLS WITH CHECK
+// policy. No-op unless multi-tenancy enforcement is on.
+func pinSessionToProjectTenant(s *xorm.Session, projectID int64) error {
+	var tenantID int64
+	has, err := s.SQL("SELECT tenant_id FROM projects WHERE id = ?", projectID).Get(&tenantID)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return nil
+	}
+	return db.PinSessionTenant(s, tenantID)
+}
+
 func ensureProjectAdminUser(s *xorm.Session, l *Project) (hadUsers bool, err error) {
 	projectUsers := []*ProjectUser{}
 	err = s.Where("project_id = ?", l.ID).Find(&projectUsers)
@@ -207,6 +223,14 @@ func ensureProjectAdminUser(s *xorm.Session, l *Project) (hadUsers bool, err err
 			// Project already has more than one admin, no need to do anything
 			return true, nil
 		}
+	}
+
+	// tenant_id is deliberately kept off the Project struct (see db.EnsureTenantColumns),
+	// so it isn't in scope here; look it up so the writes below satisfy RLS's WITH CHECK
+	// — this session is otherwise unbound (called from a system session during user
+	// deletion), and an unpinned write is rejected outright, not merely hidden.
+	if err = pinSessionToProjectTenant(s, l.ID); err != nil {
+		return true, err
 	}
 
 	for _, lu := range projectUsers {
@@ -254,6 +278,10 @@ func ensureProjectAdminTeam(s *xorm.Session, l *Project) (hadTeams bool, err err
 			// Project already has more than one admin, no need to do anything
 			return true, nil
 		}
+	}
+
+	if err = pinSessionToProjectTenant(s, l.ID); err != nil {
+		return true, err
 	}
 
 	for _, lu := range projectTeams {

@@ -1,0 +1,10 @@
+# Reverse proxy + automatic TLS (Let's Encrypt) for the Thirty Six Toyota
+# app. The app itself only serves plain HTTP (see docker-compose.yml) —
+# this is what terminates TLS. Set VIKUNJA_DOMAIN in .env to your real
+# domain (e.g. tasks.yourdealership.example); Caddy issues and renews the
+# certificate automatically as long as the domain's DNS A/AAAA record
+# points at this server and ports 80+443 are reachable.
+
+{$VIKUNJA_DOMAIN} {
+	reverse_proxy vikunja:3456
+}

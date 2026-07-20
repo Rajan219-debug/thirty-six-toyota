@@ -574,6 +574,7 @@ if (props.enableDiscardShortcut) {
 	}))
 }
 
+// eslint-disable-next-line vue/no-setup-props-reactivity-loss -- snapshot at creation, same as `editable` below
 const editor = useEditor({
 	// eslint-disable-next-line vue/no-ref-object-reactivity-loss
 	editable: isEditing.value,
@@ -581,6 +582,16 @@ const editor = useEditor({
 	onUpdate: bubbleNow,
 	parseOptions: {
 		preserveWhitespace: true,
+	},
+	editorProps: {
+		attributes: {
+			// contenteditable alone confers no implicit ARIA role (axe:
+			// "aria-label attribute cannot be used on a div with no valid
+			// role attribute") — role must be set explicitly for aria-label
+			// to be valid here.
+			role: 'textbox',
+			'aria-label': props.placeholder || t('input.editor.placeholder'),
+		},
 	},
 })
 

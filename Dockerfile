@@ -39,6 +39,11 @@ COPY --from=backend /usr/share/zoneinfo /usr/share/zoneinfo
 RUN adduser -D -u 1000 vikunja
 WORKDIR /app/vikunja
 COPY --from=backend /vikunja /app/vikunja/vikunja
+# Pre-create the files dir owned by the app user: Docker seeds a fresh named
+# volume (docker-compose.yml's vikunja-files) from whatever already exists in
+# the image at its mount point, ownership included. Without this, the volume
+# gets created owned by root and the non-root process below can't write to it.
+RUN mkdir -p /app/vikunja/files && chown -R vikunja:vikunja /app/vikunja/files
 USER vikunja
 ENV VIKUNJA_SERVICE_ROOTPATH=/app/vikunja/
 EXPOSE 3456

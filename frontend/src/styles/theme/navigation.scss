@@ -106,7 +106,8 @@
         width: 100%;
 
         &.router-link-exact-active {
-          color: var(--primary);
+          // var(--primary) alone only hits ~2.3:1 for text on white.
+          color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
         }
 
         .icon {

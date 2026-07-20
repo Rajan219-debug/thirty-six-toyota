@@ -59,7 +59,8 @@ func CreateUser(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action, not tied to the acting admin's own outlet.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	newUser, err := models.CreateUserAsAdmin(s, doer, body)

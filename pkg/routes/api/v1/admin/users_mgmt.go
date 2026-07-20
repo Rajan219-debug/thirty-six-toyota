@@ -70,7 +70,8 @@ func PatchStatus(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	target, err := models.SetUserStatusAsAdmin(s, doer, id, newStatus)
@@ -123,7 +124,8 @@ func DeleteUser(c *echo.Context) error {
 		return err
 	}
 
-	s := db.NewSession()
+	// Instance-admin action on an arbitrary target user: legitimately cross-tenant.
+	s := db.NewSystemSession()
 	defer s.Close()
 
 	if err := models.DeleteUserAsAdmin(s, doer, id, mode); err != nil {

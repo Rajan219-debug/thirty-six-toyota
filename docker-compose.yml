@@ -16,26 +16,103 @@ services:
     environment:
       VIKUNJA_DATABASE_TYPE: postgres
       VIKUNJA_DATABASE_HOST: db
-      VIKUNJA_DATABASE_USER: vikunja
-      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
+      # Connect as the NON-SUPERUSER app role (created by the db init script).
+      # A superuser would bypass Row-Level Security, defeating outlet isolation.
+      VIKUNJA_DATABASE_USER: vikunja_app
+      # No fallback default: a guessable password on the DB role RLS depends on
+      # is a real hole. `docker compose up` refuses to start until .env sets it.
+      VIKUNJA_DATABASE_PASSWORD: ${VIKUNJA_APP_DB_PASSWORD:?Set VIKUNJA_APP_DB_PASSWORD in .env}
       VIKUNJA_DATABASE_DATABASE: vikunja
-      VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWT_SECRET:-change-me-in-production}
+      # Multi-outlet isolation. Off by default (app behaves single-outlet). Set to
+      # 1 only once every request path binds a tenant — see the multitenancy plan.
+      VIKUNJA_MULTITENANCY_ENFORCE: ${VIKUNJA_MULTITENANCY_ENFORCE:-0}
+      # No fallback default, deliberately: a placeholder here would silently
+      # become the real, checked-into-git JWT secret if forgotten, letting
+      # anyone forge a token for any user. `docker compose up` refuses to start
+      # until .env sets a real one (see pkg/config/config.go's matching
+      # fail-closed check, which also refuses to boot on a placeholder/short
+      # secret if this ever gets bypassed). Generate one with: openssl rand -hex 32
+      VIKUNJA_SERVICE_SECRET: "${VIKUNJA_JWT_SECRET:?Set VIKUNJA_JWT_SECRET in .env (generate one with `openssl rand -hex 32`)}"
       VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
       VIKUNJA_SERVICE_FRONTENDURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456/}
+      # Rate limiting. The strict per-IP + per-account backoff on login/register/
+      # password-reset is always on regardless of this flag; this switch enables
+      # the general public/authenticated tiers on top of it (see rate_limit.go).
+      VIKUNJA_RATELIMIT_ENABLED: ${VIKUNJA_RATELIMIT_ENABLED:-true}
+      VIKUNJA_RATELIMIT_KIND: user
+      VIKUNJA_RATELIMIT_LIMIT: 100
+      VIKUNJA_RATELIMIT_PERIOD: 60
+      # Without this, the app reads the raw TCP peer as the client IP, which
+      # behind Caddy is always Caddy's own container address: every real
+      # visitor collapses into one shared IP, so the per-IP auth rate limiter
+      # (login/register/password-reset brute-force protection) shares one
+      # budget across every user — one attacker hammering /login can lock out
+      # the whole dealership.
+      #
+      # 172.16.0.0/12 covers Docker's default bridge range, which includes
+      # both Caddy's container IP and the bridge gateway IP (host-to-
+      # published-port traffic is NATed through the gateway, so it presents
+      # the same way) — verified live: hitting this port directly from the
+      # host also gets its X-Forwarded-For trusted, not just genuine
+      # Caddy→vikunja traffic. That's not exploitable *remotely* — this
+      # port is bound to 127.0.0.1 only (see below), never published, so
+      # reaching that path at all already requires local code execution on
+      # the VPS, a far bigger compromise than spoofing a rate-limit key. But
+      # don't read this CIDR as "only Caddy can be the peer"; the loopback
+      # bind is the actual control that makes this safe, not the CIDR.
+      VIKUNJA_SERVICE_IPEXTRACTIONMETHOD: xff
+      VIKUNJA_SERVICE_TRUSTEDPROXIES: 172.16.0.0/12
+      # Email. Task-assignment, reminders and closure notifications are e-mailed
+      # to staff once this is on. Off by default — set VIKUNJA_MAILER_ENABLED=true
+      # and the host/username/password (Gmail, SendGrid, or the dealership SMTP)
+      # in your .env to switch it on. The assignee gets "You have been assigned
+      # to <task>" the moment a task is assigned to them.
+      VIKUNJA_MAILER_ENABLED: ${VIKUNJA_MAILER_ENABLED:-false}
+      VIKUNJA_MAILER_HOST: ${VIKUNJA_MAILER_HOST:-}
+      VIKUNJA_MAILER_PORT: ${VIKUNJA_MAILER_PORT:-587}
+      VIKUNJA_MAILER_USERNAME: ${VIKUNJA_MAILER_USERNAME:-}
+      VIKUNJA_MAILER_PASSWORD: ${VIKUNJA_MAILER_PASSWORD:-}
+      VIKUNJA_MAILER_FROMEMAIL: ${VIKUNJA_MAILER_FROMEMAIL:-noreply@thirtysixtoyota.com}
     ports:
-      - "${VIKUNJA_PORT:-3456}:3456"
+      # Bound to localhost only: Caddy (below) is the public entry point and
+      # terminates TLS. Publishing this to 0.0.0.0 too would let anyone reach
+      # the app directly over plain HTTP, bypassing TLS entirely. Still
+      # reachable from the VPS itself (e.g. over an SSH tunnel) for debugging.
+      - "127.0.0.1:${VIKUNJA_PORT:-3456}:3456"
     volumes:
       - vikunja-files:/app/vikunja/files
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - vikunja
+    environment:
+      # Bare domain, no scheme — e.g. tasks.yourdealership.example.
+      VIKUNJA_DOMAIN: ${VIKUNJA_DOMAIN:?Set VIKUNJA_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     restart: unless-stopped
 
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: vikunja
-      POSTGRES_PASSWORD: ${VIKUNJA_DB_PASSWORD:-vikunja}
+      POSTGRES_PASSWORD: "${VIKUNJA_DB_PASSWORD:?Set VIKUNJA_DB_PASSWORD in .env}"
       POSTGRES_DB: vikunja
+      # Password for the non-superuser app role created by the init script.
+      # Must match the vikunja service's VIKUNJA_APP_DB_PASSWORD above — both
+      # read the same .env key, so they can't drift out of sync.
+      VIKUNJA_APP_DB_PASSWORD: "${VIKUNJA_APP_DB_PASSWORD:?Set VIKUNJA_APP_DB_PASSWORD in .env}"
     volumes:
       - vikunja-db:/var/lib/postgresql/data
+      # Runs once on first init: creates the non-superuser vikunja_app role.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vikunja -d vikunja"]
       interval: 5s
@@ -46,3 +123,5 @@ services:
 volumes:
   vikunja-db:
   vikunja-files:
+  caddy-data:
+  caddy-config:

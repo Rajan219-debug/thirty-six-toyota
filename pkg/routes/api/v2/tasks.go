@@ -148,7 +148,7 @@ func tasksReadByIndex(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, translateDomainError(err)
 	}
-	projectID, err := resolveProjectIdentifier(in.Project)
+	projectID, err := resolveProjectIdentifier(ctx, in.Project)
 	if err != nil {
 		return nil, err
 	}
@@ -225,11 +225,15 @@ func tasksDelete(ctx context.Context, in *struct {
 // project id. A pure-digit value is always an id (mirroring v1's
 // ResolveProjectIdentifier middleware); anything else is looked up as a
 // case-insensitive identifier and 404s if unknown.
-func resolveProjectIdentifier(raw string) (int64, error) {
+func resolveProjectIdentifier(ctx context.Context, raw string) (int64, error) {
 	if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
 		return id, nil
 	}
-	s := db.NewSession()
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	project, err := models.GetProjectSimpleByIdentifier(s, raw)
 	if err != nil {

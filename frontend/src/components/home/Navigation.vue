@@ -14,7 +14,10 @@
 			</div>
 		</div>
 
-		<nav class="menu top-menu">
+		<nav
+			class="menu top-menu"
+			:aria-label="$t('navigation.mainMenu')"
+		>
 			<menu class="menu-list other-menu-items">
 				<li>
 					<RouterLink
@@ -51,6 +54,10 @@
 							<Icon icon="comments" />
 						</span>
 						{{ $t('navigation.discussion') }}
+						<span
+							v-if="hasUnreadConversations"
+							class="tst-nav-unread-dot"
+						/>
 					</RouterLink>
 				</li>
 				<li>
@@ -115,6 +122,7 @@
 			<nav
 				v-if="favoriteProjects.length"
 				class="menu"
+				:aria-label="$t('project.favoriteProjects')"
 			>
 				<ProjectsNavigation
 					:model-value="favoriteProjects"
@@ -126,6 +134,7 @@
 			<nav
 				v-if="savedFilterProjects.length"
 				class="menu"
+				:aria-label="$t('filters.title')"
 			>
 				<ProjectsNavigation
 					:model-value="savedFilterProjects"
@@ -134,7 +143,10 @@
 				/>
 			</nav>
 
-			<nav class="menu">
+			<nav
+				class="menu"
+				:aria-label="$t('project.projects')"
+			>
 				<ProjectsNavigation
 					:model-value="projects"
 					:can-edit-order="true"
@@ -174,12 +186,14 @@ import {useAuthStore} from '@/stores/auth'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import type {IProject} from '@/modelTypes/IProject'
 import {useSidebarResize} from '@/composables/useSidebarResize'
+import {useConversations} from '@/composables/useConversations'
 
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
 
 const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
+const {hasUnread: hasUnreadConversations} = useConversations()
 
 // "Create Task" jumps to the user's default project (or first available), where the
 // inline add-task input lives — Vikunja has no standalone global task-create screen.
@@ -275,7 +289,9 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 
 	&__role {
 		font-size: .8rem;
-		color: var(--grey-400);
+		// --grey-400 fails WCAG AA contrast on the white sidebar background;
+		// --grey-600 is the closest darker step that passes.
+		color: var(--grey-600);
 	}
 }
 
@@ -299,13 +315,25 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 			opacity: .7;
 		}
 
+		.tst-nav-unread-dot {
+			display: inline-block;
+			flex-shrink: 0;
+			inline-size: .5rem;
+			block-size: .5rem;
+			border-radius: 100%;
+			background: var(--primary);
+		}
+
 		&:hover {
 			color: var(--grey-900);
 			background: var(--grey-50);
 		}
 
 		&.router-link-active {
-			color: var(--primary);
+			// full-brightness --primary text fails WCAG AA contrast even on
+			// this faint 10%-opacity tint background; text-tuned shade passes
+			// in both light (darker) and dark (lighter) mode.
+			color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 			font-weight: 700;
 			background: hsla(var(--primary-hsl), .1);
 			border-inline-start-color: var(--primary);
@@ -360,14 +388,16 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 	inline-size: 100%;
 	padding: .6rem 1rem;
 	border-radius: var(--control-radius);
-	background: var(--primary);
+	// var(--primary) alone only hits ~2.3:1 for white text — --primary-dark
+	// is the same dark-enough-for-white-text shade ProjectWrapper.vue uses.
+	background: var(--primary-dark);
 	color: #ffffff;
 	font-weight: 700;
 	font-size: .95rem;
 	transition: background-color .15s ease;
 
 	&:hover {
-		background: hsla(var(--primary-h), var(--primary-s), calc(var(--primary-l) - 8%), 1);
+		background: hsla(var(--primary-h), var(--primary-s), calc(var(--primary-dark-l) - 8%), 1);
 		color: #ffffff;
 	}
 }

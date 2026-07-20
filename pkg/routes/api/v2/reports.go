@@ -151,7 +151,7 @@ func init() { AddRouteRegistrar(RegisterReportRoutes) }
 // buildTimesheetReport runs the shared session/permission plumbing for both the
 // JSON and CSV timesheet handlers.
 func buildTimesheetReport(a web.Auth, w reportWindow, userID, projectID int64) (*models.TimesheetReport, error) {
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetTimesheetReport(s, a, nilIfZero(w.Start), nilIfZero(w.End), userID, projectID)
 	if err != nil {
@@ -204,8 +204,8 @@ func reportsTimesheetCSV(ctx context.Context, in *struct {
 		for _, r := range report.Rows {
 			_ = cw.Write([]string{
 				strconv.FormatInt(r.UserID, 10),
-				r.Username,
-				r.Name,
+				csvSafe(r.Username),
+				csvSafe(r.Name),
 				strconv.FormatInt(r.EntryCount, 10),
 				strconv.FormatInt(r.TotalSeconds, 10),
 				secondsToHours(r.TotalSeconds),
@@ -223,7 +223,7 @@ func reportsLateCompletions(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, err
 	}
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetLateCompletionReport(s, a, nilIfZero(in.Start), nilIfZero(in.End))
 	if err != nil {
@@ -243,7 +243,7 @@ func reportsLateCompletionsCSV(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, err
 	}
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetLateCompletionReport(s, a, nilIfZero(in.Start), nilIfZero(in.End))
 	if err != nil {
@@ -264,8 +264,8 @@ func reportsLateCompletionsCSV(ctx context.Context, in *struct {
 		for _, r := range report.Rows {
 			_ = cw.Write([]string{
 				strconv.FormatInt(r.UserID, 10),
-				r.Username,
-				r.Name,
+				csvSafe(r.Username),
+				csvSafe(r.Name),
 				strconv.FormatInt(r.LateCount, 10),
 			})
 		}
@@ -276,7 +276,7 @@ func reportsLateCompletionsCSV(ctx context.Context, in *struct {
 // buildDepartmentEstimateReport runs the shared session/permission plumbing for
 // both the JSON and CSV department-estimate handlers.
 func buildDepartmentEstimateReport(a web.Auth, w reportWindow) (*models.DepartmentEstimateReport, error) {
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 	report, err := models.GetDepartmentEstimateReport(s, a, nilIfZero(w.Start), nilIfZero(w.End))
 	if err != nil {
@@ -325,7 +325,7 @@ func reportsDepartmentEstimatesCSV(ctx context.Context, in *struct {
 		for _, r := range report.Rows {
 			_ = cw.Write([]string{
 				strconv.FormatInt(r.ProjectID, 10),
-				r.ProjectTitle,
+				csvSafe(r.ProjectTitle),
 				strconv.FormatInt(r.TaskCount, 10),
 				strconv.FormatInt(r.EstimatedSeconds, 10),
 				secondsToHours(r.EstimatedSeconds),
@@ -336,6 +336,22 @@ func reportsDepartmentEstimatesCSV(ctx context.Context, in *struct {
 		_ = cw.Write([]string{"", "TOTAL", "", strconv.FormatInt(report.TotalEstimated, 10), secondsToHours(report.TotalEstimated), strconv.FormatInt(report.TotalActual, 10), secondsToHours(report.TotalActual)})
 		cw.Flush()
 	}}, nil
+}
+
+// csvSafe neutralises spreadsheet formula (CSV) injection. A user-controlled
+// cell (username, display name, project/department title) that begins with
+// =, +, -, @ or a control char is executed as a formula when the CSV is opened
+// in Excel/Sheets. Prefixing with a single quote forces it to render as literal
+// text. encoding/csv only escapes for CSV structure, not for this.
+func csvSafe(v string) string {
+	if v == "" {
+		return v
+	}
+	switch v[0] {
+	case '=', '+', '-', '@', '\t', '\r':
+		return "'" + v
+	}
+	return v
 }
 
 // secondsToHours renders whole seconds as decimal hours to two places, for the

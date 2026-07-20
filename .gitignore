@@ -58,3 +58,8 @@ PLAN.md
 plans/
 /.crush/
 /.playwright-mcp
+dev-run.log
+gmail-run.log
+*.exe~
+.env
+backups/

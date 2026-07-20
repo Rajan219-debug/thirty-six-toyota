@@ -142,7 +142,7 @@ func timeEntriesTimerStop(ctx context.Context, _ *struct{}) (*singleBody[models.
 		return nil, err
 	}
 
-	s := db.NewSession()
+	s := db.NewBoundSession(a.GetID())
 	defer s.Close()
 
 	entry, err := models.StopRunningTimer(s, a)
