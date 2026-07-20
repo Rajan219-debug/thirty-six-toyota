@@ -39,8 +39,8 @@ const (
 // Weights for the priority score formula: Score = W1*Urgency + W2*Importance + W3*DeadlineProximity.
 // All three inputs are normalized to a 0-5 scale before weighting.
 const (
-	priorityWeightUrgency          = 0.3
-	priorityWeightImportance       = 0.3
+	priorityWeightUrgency           = 0.3
+	priorityWeightImportance        = 0.3
 	priorityWeightDeadlineProximity = 0.4
 
 	// Deadline proximity ramps up over this window; a due date further out than

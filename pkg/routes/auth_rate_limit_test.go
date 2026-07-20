@@ -24,6 +24,7 @@ import (
 	"code.vikunja.io/api/pkg/modules/keyvalue"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClassifyAuthRoute(t *testing.T) {
@@ -81,7 +82,7 @@ func TestAuthAccountBackoffStateMachine(t *testing.T) {
 	assert.False(t, blocked)
 
 	// A stale record (past the failure-reset horizon) counts as absent.
-	assert.NoError(t, keyvalue.Put(authFailureKey(account), authFailureState{
+	require.NoError(t, keyvalue.Put(authFailureKey(account), authFailureState{
 		Fails:        50,
 		BackoffUntil: time.Now().Add(time.Hour),
 		StaleAt:      time.Now().Add(-time.Minute),

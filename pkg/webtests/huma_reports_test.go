@@ -76,7 +76,7 @@ func TestHumaReports(t *testing.T) {
 		for _, r := range report.Rows {
 			assert.Equal(t, int64(1), r.UserID, "only user1 has time on project 1")
 		}
-		assert.Greater(t, report.TotalSeconds, int64(0))
+		assert.Positive(t, report.TotalSeconds)
 	})
 
 	t.Run("timesheet CSV download", func(t *testing.T) {

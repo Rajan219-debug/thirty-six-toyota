@@ -56,7 +56,7 @@ func TestHumaDashboardStats(t *testing.T) {
 
 		// Fixture task 36 has a 2018 due date and is readable by user1.
 		assert.GreaterOrEqual(t, stats.Overdue, int64(1))
-		assert.Greater(t, stats.TotalOpen, int64(0))
+		assert.Positive(t, stats.TotalOpen)
 		assert.GreaterOrEqual(t, stats.CompletionRate, float64(0))
 		assert.LessOrEqual(t, stats.CompletionRate, float64(100))
 

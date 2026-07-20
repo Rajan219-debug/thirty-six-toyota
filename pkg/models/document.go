@@ -32,8 +32,8 @@ type Document struct {
 	// The unique, numeric id of this document.
 	ID int64 `xorm:"bigint autoincr not null unique pk" json:"id" param:"document" readOnly:"true" doc:"The unique, numeric id of this document."`
 	// The id of the folder this document belongs to.
-	FolderID int64  `xorm:"bigint not null index" json:"folder_id" doc:"The id of the folder this document belongs to."`
-	FileID   int64  `xorm:"bigint not null" json:"-"`
+	FolderID int64 `xorm:"bigint not null index" json:"folder_id" doc:"The id of the folder this document belongs to."`
+	FileID   int64 `xorm:"bigint not null" json:"-"`
 
 	CreatedByID int64 `xorm:"bigint not null" json:"-"`
 	// The user who uploaded this document.

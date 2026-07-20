@@ -48,6 +48,7 @@ package e2etests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -65,14 +66,17 @@ type isolationClient struct {
 	client  *http.Client
 }
 
-func (c *isolationClient) do(method, path, token string, body any) (*http.Response, []byte) {
+// do issues the request and fully drains and closes the response body itself
+// (returning only the status code and body bytes), so callers never handle
+// an *http.Response and never need to worry about closing one.
+func (c *isolationClient) do(method, path, token string, body any) (statusCode int, respBody []byte) {
 	var reader io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
 		require.NoError(c.t, err)
 		reader = bytes.NewReader(b)
 	}
-	req, err := http.NewRequest(method, c.baseURL+path, reader)
+	req, err := http.NewRequestWithContext(context.Background(), method, c.baseURL+path, reader)
 	require.NoError(c.t, err)
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
@@ -81,17 +85,17 @@ func (c *isolationClient) do(method, path, token string, body any) (*http.Respon
 	resp, err := c.client.Do(req)
 	require.NoError(c.t, err)
 	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err = io.ReadAll(resp.Body)
 	require.NoError(c.t, err)
-	return resp, respBody
+	return resp.StatusCode, respBody
 }
 
 func (c *isolationClient) login(username, password string) string {
-	resp, body := c.do(http.MethodPost, "/api/v1/login", "", map[string]string{
+	statusCode, body := c.do(http.MethodPost, "/api/v1/login", "", map[string]string{
 		"username": username,
 		"password": password,
 	})
-	require.Equal(c.t, http.StatusOK, resp.StatusCode, "login for %s failed: %s", username, body)
+	require.Equal(c.t, http.StatusOK, statusCode, "login for %s failed: %s", username, body)
 	var res struct {
 		Token string `json:"token"`
 	}
@@ -101,12 +105,12 @@ func (c *isolationClient) login(username, password string) string {
 }
 
 func (c *isolationClient) register(username, password string) int64 {
-	resp, body := c.do(http.MethodPost, "/api/v1/register", "", map[string]string{
+	statusCode, body := c.do(http.MethodPost, "/api/v1/register", "", map[string]string{
 		"username": username,
 		"email":    username + "@isolation-test.example.com",
 		"password": password,
 	})
-	require.Equal(c.t, http.StatusOK, resp.StatusCode, "register %s failed: %s", username, body)
+	require.Equal(c.t, http.StatusOK, statusCode, "register %s failed: %s", username, body)
 	var res struct {
 		ID int64 `json:"id"`
 	}
@@ -116,14 +120,14 @@ func (c *isolationClient) register(username, password string) int64 {
 }
 
 func (c *isolationClient) setOutlet(adminToken string, userID, tenantID int64, isHQ bool) {
-	resp, body := c.do(http.MethodPatch, fmt.Sprintf("/api/v2/admin/users/%d/outlet", userID), adminToken,
+	statusCode, body := c.do(http.MethodPatch, fmt.Sprintf("/api/v2/admin/users/%d/outlet", userID), adminToken,
 		map[string]any{"tenant_id": tenantID, "is_hq": isHQ})
-	require.Equal(c.t, http.StatusOK, resp.StatusCode, "set outlet for user %d failed: %s", userID, body)
+	require.Equal(c.t, http.StatusOK, statusCode, "set outlet for user %d failed: %s", userID, body)
 }
 
 func (c *isolationClient) createProject(token, title string) int64 {
-	resp, body := c.do(http.MethodPut, "/api/v1/projects", token, map[string]string{"title": title})
-	require.Equal(c.t, http.StatusCreated, resp.StatusCode, "create project failed: %s", body)
+	statusCode, body := c.do(http.MethodPut, "/api/v1/projects", token, map[string]string{"title": title})
+	require.Equal(c.t, http.StatusCreated, statusCode, "create project failed: %s", body)
 	var res struct {
 		ID int64 `json:"id"`
 	}
@@ -176,31 +180,31 @@ func TestTenantIsolation(t *testing.T) {
 	projectID := c.createProject(tokenA, fmt.Sprintf("Isolation Test Project %d", stamp))
 
 	t.Run("owner can read own project", func(t *testing.T) {
-		resp, body := c.do(http.MethodGet, fmt.Sprintf("/api/v1/projects/%d", projectID), tokenA, nil)
-		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
+		statusCode, body := c.do(http.MethodGet, fmt.Sprintf("/api/v1/projects/%d", projectID), tokenA, nil)
+		require.Equal(t, http.StatusOK, statusCode, string(body))
 	})
 
 	t.Run("owner can write to own project", func(t *testing.T) {
-		resp, body := c.do(http.MethodPut, fmt.Sprintf("/api/v1/projects/%d/tasks", projectID), tokenA,
+		statusCode, body := c.do(http.MethodPut, fmt.Sprintf("/api/v1/projects/%d/tasks", projectID), tokenA,
 			map[string]string{"title": "same-tenant task"})
-		require.Equal(t, http.StatusCreated, resp.StatusCode, string(body))
+		require.Equal(t, http.StatusCreated, statusCode, string(body))
 	})
 
 	t.Run("other-tenant user cannot read the project", func(t *testing.T) {
-		resp, _ := c.do(http.MethodGet, fmt.Sprintf("/api/v1/projects/%d", projectID), tokenB, nil)
-		require.Equal(t, http.StatusNotFound, resp.StatusCode,
+		statusCode, _ := c.do(http.MethodGet, fmt.Sprintf("/api/v1/projects/%d", projectID), tokenB, nil)
+		require.Equal(t, http.StatusNotFound, statusCode,
 			"cross-tenant read must be hidden (404), not merely forbidden — RLS fail-safe is 'no rows', not a 403 that would confirm the row exists")
 	})
 
 	t.Run("other-tenant user cannot write to the project", func(t *testing.T) {
-		resp, _ := c.do(http.MethodPut, fmt.Sprintf("/api/v1/projects/%d/tasks", projectID), tokenB,
+		statusCode, _ := c.do(http.MethodPut, fmt.Sprintf("/api/v1/projects/%d/tasks", projectID), tokenB,
 			map[string]string{"title": "cross-tenant write attempt"})
-		require.Equal(t, http.StatusNotFound, resp.StatusCode)
+		require.Equal(t, http.StatusNotFound, statusCode)
 	})
 
 	t.Run("other-tenant user does not see it in their project list", func(t *testing.T) {
-		resp, body := c.do(http.MethodGet, "/api/v1/projects", tokenB, nil)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
+		statusCode, body := c.do(http.MethodGet, "/api/v1/projects", tokenB, nil)
+		require.Equal(t, http.StatusOK, statusCode)
 		var list []struct {
 			ID int64 `json:"id"`
 		}
@@ -211,7 +215,7 @@ func TestTenantIsolation(t *testing.T) {
 	})
 
 	t.Run("HQ admin can read across outlets", func(t *testing.T) {
-		resp, body := c.do(http.MethodGet, fmt.Sprintf("/api/v1/projects/%d", projectID), adminToken, nil)
-		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
+		statusCode, body := c.do(http.MethodGet, fmt.Sprintf("/api/v1/projects/%d", projectID), adminToken, nil)
+		require.Equal(t, http.StatusOK, statusCode, string(body))
 	})
 }
