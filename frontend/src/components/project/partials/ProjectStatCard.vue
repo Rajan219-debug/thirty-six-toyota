@@ -76,7 +76,6 @@
 
 <script setup lang="ts">
 import {ref, computed, onMounted} from 'vue'
-import {useI18n} from 'vue-i18n'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import TaskCollectionService, {getDefaultTaskFilterParams} from '@/services/taskCollection'
@@ -87,7 +86,6 @@ import type {ITask} from '@/modelTypes/ITask'
 
 const props = defineProps<{project: IProject}>()
 
-const {t} = useI18n({useScope: 'global'})
 const projectStore = useProjectStore()
 
 const loading = ref(true)

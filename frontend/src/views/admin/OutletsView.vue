@@ -205,7 +205,7 @@ onMounted(load)
 }
 
 .outlets__table {
-	width: 100%;
+	inline-size: 100%;
 	border-collapse: collapse;
 	margin-block-end: 1.5rem;
 }
@@ -236,7 +236,7 @@ onMounted(load)
 
 .outlets__make-default:hover {
 	background: var(--primary);
-	color: #fff;
+	color: #ffffff;
 }
 
 .outlets__delete {
@@ -252,7 +252,7 @@ onMounted(load)
 
 .outlets__delete:hover {
 	background: #c0392b;
-	color: #fff;
+	color: #ffffff;
 	border-color: #c0392b;
 }
 
@@ -294,7 +294,7 @@ onMounted(load)
 .outlets__form button {
 	padding: 0.4rem 1rem;
 	background: var(--primary);
-	color: #fff;
+	color: #ffffff;
 	border: none;
 	border-radius: 4px;
 	cursor: pointer;
