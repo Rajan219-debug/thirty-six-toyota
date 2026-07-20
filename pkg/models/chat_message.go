@@ -112,16 +112,51 @@ func (m *ChatMessage) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, p
 	return messages, len(messages), numberOfTotalItems, err
 }
 
-func getLastMessage(s *xorm.Session, conversationID int64) (*ChatMessage, error) {
-	msg := &ChatMessage{}
-	exists, err := s.Where("conversation_id = ?", conversationID).Desc("id").Get(msg)
-	if err != nil || !exists {
+// getLastMessagesForConversations returns each conversation's most recent
+// message, keyed by conversation id. Two queries total regardless of how
+// many conversations are asked for — not one query per conversation — first
+// the newest message id per conversation via MAX(id)/GROUP BY, then a single
+// fetch of just those rows. Portable across Postgres/MySQL/SQLite: no window
+// functions needed.
+func getLastMessagesForConversations(s *xorm.Session, conversationIDs []int64) (map[int64]*ChatMessage, error) {
+	result := make(map[int64]*ChatMessage, len(conversationIDs))
+	if len(conversationIDs) == 0 {
+		return result, nil
+	}
+
+	type latestRow struct {
+		ConversationID int64 `xorm:"conversation_id"`
+		MaxID          int64 `xorm:"max_id"`
+	}
+	latest := []latestRow{}
+	if err := s.Table("chat_messages").
+		In("conversation_id", conversationIDs).
+		Select("conversation_id, MAX(id) AS max_id").
+		GroupBy("conversation_id").
+		Find(&latest); err != nil {
 		return nil, err
 	}
-	if err = addAuthorsToMessages(s, []*ChatMessage{msg}); err != nil {
+	if len(latest) == 0 {
+		return result, nil
+	}
+
+	messageIDs := make([]int64, 0, len(latest))
+	for _, row := range latest {
+		messageIDs = append(messageIDs, row.MaxID)
+	}
+
+	messages := []*ChatMessage{}
+	if err := s.In("id", messageIDs).Find(&messages); err != nil {
 		return nil, err
 	}
-	return msg, nil
+	if err := addAuthorsToMessages(s, messages); err != nil {
+		return nil, err
+	}
+
+	for _, msg := range messages {
+		result[msg.ConversationID] = msg
+	}
+	return result, nil
 }
 
 func addAuthorsToMessages(s *xorm.Session, messages []*ChatMessage) error {
