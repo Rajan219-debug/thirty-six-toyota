@@ -1,55 +1,40 @@
-<img src="https://vikunja.io/images/vikunja-logo.svg" alt="" style="display: block;width: 50%;margin: 0 auto;" width="50%"/>
+# Thirty Six Toyota — Task Accountability & Command Center
 
-[![Build Status](https://github.com/go-vikunja/vikunja/actions/workflows/ci.yml/badge.svg)](https://github.com/go-vikunja/vikunja/actions/workflows/ci.yml)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Install](https://img.shields.io/badge/download-v2.3.0-brightgreen.svg)](https://vikunja.io/docs/installing)
-[![Docker Pulls](https://img.shields.io/docker/pulls/vikunja/vikunja.svg)](https://hub.docker.com/r/vikunja/vikunja/)
-[![Swagger Docs](https://img.shields.io/badge/swagger-docs-brightgreen.svg)](https://try.vikunja.io/api/v1/docs)
-[![Go Report Card](https://goreportcard.com/badge/code.vikunja.io/api)](https://goreportcard.com/report/code.vikunja.io/api)
 
-# Vikunja
-
-> The Todo-app to organize your life.
-
-If Vikunja is useful to you, please consider [buying me a coffee](https://www.buymeacoffee.com/kolaente), [sponsoring me on GitHub](https://github.com/sponsors/kolaente) or buying [a sticker pack](https://vikunja.io/stickers).
-I'm also offering [a hosted version of Vikunja](https://vikunja.cloud/) if you want a hassle-free solution for yourself or your team.
-
-## Table of contents
-
-- [Security Reports](#security-reports)
-- [Features](#features)
-- [Docs](#docs)
-	- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-	- [Unsplash Images](#unsplash-images)
+A dealership task-accountability web application for internal operations:
+assigning work to service/sales/parts staff, tracking due dates, and holding
+assignees accountable for on-time completion. It's a functional fork of
+[Vikunja](https://vikunja.io) (an open-source, Go + Vue task-management
+platform), reskinned to the Toyota brand and extended with dealership-specific
+accountability logic — task status lifecycle, manager sign-off on closing
+overdue work, timesheets/reporting, and Postgres-RLS-backed multi-outlet
+isolation — that stock Vikunja doesn't have. See
+[`plans/thirtysixtoyota-synopsis.md`](plans/thirtysixtoyota-synopsis.md) for
+the full rationale, and the other files under [`plans/`](plans/) for the
+design of each major feature.
 
 ## Security Reports
 
-If you find any security-related issues you don't want to disclose publicly, please use [the contact information on our website](https://vikunja.io/contact/#security).
-
-## Features
-
-See [the features page](https://vikunja.io/features/) on our website for a more exhaustive list or 
-try it on [try.vikunja.io](https://try.vikunja.io)!
+Send security concerns directly to whoever administers this deployment —
+this is an internal tool with no public bug-bounty program.
 
 ## Docs
 
-* [Installing](https://vikunja.io/docs/installing/)
-* [Build from source](https://vikunja.io/docs/build-from-sources/)
-* [Development setup](https://vikunja.io/docs/development/)
-* [Magefile](https://vikunja.io/docs/magefile/)
-* [Testing](https://vikunja.io/docs/testing/)
+* [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) — repo conventions and
+  AI-assistant guidance
+* [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution guidelines
+* [`docker-compose.yml`](docker-compose.yml) + [`.env.production.example`](.env.production.example) — production deployment
+* [`docker/thirtysixtoyota/README.md`](docker/thirtysixtoyota/README.md) — local dev/demo stack
+* [`dev-run.sh`](dev-run.sh) — local dev server against a real Postgres DB
 
-All docs can be found on [the Vikunja home page](https://vikunja.io/docs/).
-
-### Roadmap
-
-See [the roadmap](https://my.vikunja.cloud/share/QFyzYEmEYfSyQfTOmIRSwLUpkFjboaBqQCnaPmWd/auth) (hosted on Vikunja!) for more!
+Upstream Vikunja's own docs (build-from-source, magefile targets, testing
+conventions) at [vikunja.io/docs](https://vikunja.io/docs/) still apply where
+this fork hasn't changed that part of the stack.
 
 ## Contributing
 
-Please check out the contribution guidelines on [the website](https://vikunja.io/docs/development/).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
