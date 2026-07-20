@@ -78,6 +78,13 @@ async function scan(page, name) {
 
 		try {
 			await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle', timeout: 15000 })
+			// App.vue gates all real content (both the authenticated layout and
+			// NoAuthWrapper) behind Ready.vue's baseStore.ready check, which shows
+			// a landmark-less loading region until the initial config/auth fetch
+			// resolves. networkidle alone can settle before that flips on a cold
+			// CI runner's first navigation, so axe was sometimes scanning the
+			// loading state instead of the page — wait for the real landmark.
+			await page.waitForSelector('main#main-content', { timeout: 15000 })
 		} catch (e) {
 			console.log(`\n=== ${name} (${route}) === SKIPPED: ${e.message.split('\n')[0]}`)
 			continue
