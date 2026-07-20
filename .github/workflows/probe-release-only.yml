@@ -1,6 +1,0 @@
-name: probe-release-only
-on: workflow_dispatch
-jobs:
-  release:
-    uses: ./.github/workflows/release.yml
-    secrets: inherit
