@@ -393,3 +393,87 @@ jobs:
           files: "dist/repo-output/**/*"
           strip-path-prefix: dist/repo-output/
 
+  config-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Git describe
+        id: ghd
+        uses: proudust/gh-describe@80412be8ce0e77d8afba6b340e34790bc772aa45 # v2.2.0
+      - name: Download Mage Binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: mage_bin
+      - name: generate
+        run: |
+          chmod +x ./mage-static
+          ./mage-static generate:config-yaml 1
+      - name: Upload to S3
+        uses: kolaente/s3-action@7f58dddd682b2f93a6c6799c9f68e7a38f2da558 # main
+        with:
+          s3-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
+          s3-secret-access-key: ${{ secrets.S3_SECRET_KEY }}
+          s3-endpoint: ${{ secrets.S3_ENDPOINT }}
+          s3-bucket: ${{ secrets.S3_BUCKET }}
+          s3-region: ${{ secrets.S3_REGION }}
+          target-path: /vikunja/${{ github.ref_type == 'tag' && steps.ghd.outputs.describe || 'unstable' }}
+          files: "config.yml.sample"
+
+  desktop:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Git describe
+        id: ghd
+        uses: proudust/gh-describe@80412be8ce0e77d8afba6b340e34790bc772aa45 # v2.2.0
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          package_json_file: desktop/package.json
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - name: Install Linux dependencies
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libopenjp2-tools rpm libarchive-tools
+      - name: get frontend
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: frontend_dist
+          path: frontend/dist
+      - name: Build desktop app
+        working-directory: desktop
+        run: |
+          pnpm install  --frozen-lockfile --prefer-offline --fetch-timeout 100000
+          node build.js "${{ steps.ghd.outputs.describe }}" ${{ github.ref_type == 'tag' }}
+      - name: Upload to S3
+        uses: kolaente/s3-action@7f58dddd682b2f93a6c6799c9f68e7a38f2da558 # main
+        with:
+          s3-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
+          s3-secret-access-key: ${{ secrets.S3_SECRET_KEY }}
+          s3-endpoint: ${{ secrets.S3_ENDPOINT }}
+          s3-bucket: ${{ secrets.S3_BUCKET }}
+          s3-region: ${{ secrets.S3_REGION }}
+          files: "desktop/dist/Vikunja*"
+          target-path: /desktop/${{ github.ref_type == 'tag' && steps.ghd.outputs.describe || 'unstable' }}
+          strip-path-prefix: desktop/dist/
+          exclude: "desktop/dist/*.blockmap"
+      - name: Store Desktop Package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vikunja_desktop_packages_${{ matrix.os }}
+          path: |
+            ./desktop/dist/Vikunja*
+            !./desktop/dist/*.blockmap
