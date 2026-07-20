@@ -33,6 +33,13 @@ jobs:
     needs:
       - test
     secrets: inherit
+    # release.yml's generate-swagger-docs/create-release jobs request
+    # contents: write; a called job can't escalate beyond what the caller
+    # grants, and this repo's default GITHUB_TOKEN permission is read-only
+    # — without this, the whole reusable-workflow graph is rejected at
+    # validation time (startup_failure, zero jobs), not just those two jobs.
+    permissions:
+      contents: write
 
   deploy:
     name: Deploy
