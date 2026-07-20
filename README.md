@@ -24,7 +24,8 @@ this is an internal tool with no public bug-bounty program.
 * [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) — repo conventions and
   AI-assistant guidance
 * [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution guidelines
-* [`docker-compose.yml`](docker-compose.yml) + [`.env.production.example`](.env.production.example) — production deployment
+* [`DEPLOYMENT.md`](DEPLOYMENT.md) — first-time production deployment, start to finish
+* [`docker-compose.yml`](docker-compose.yml) + [`.env.production.example`](.env.production.example) — production stack reference
 * [`docker/thirtysixtoyota/README.md`](docker/thirtysixtoyota/README.md) — local dev/demo stack
 * [`dev-run.sh`](dev-run.sh) — local dev server against a real Postgres DB
 
