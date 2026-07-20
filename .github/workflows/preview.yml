@@ -74,7 +74,6 @@ jobs:
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const base = 'preview.vikunja.dev';
             const image = `ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}`;
             const marker = '<!-- vikunja-preview-comment -->';
 
@@ -85,12 +84,7 @@ jobs:
             const shortSha = shaTag ? shaTag.replace('sha-', '').substring(0, 7) : context.payload.pull_request.head.sha.substring(0, 7);
 
             const prTag = `pr-${prNumber}`;
-            const newShaRow = shaTag
-              ? `| https://${shaTag}.${base} | \`${image}:${shaTag}\` | \`${shortSha}\` |`
-              : '';
 
-            // Collect previous SHA rows from existing comment
-            let previousShaRows = [];
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -98,31 +92,18 @@ jobs:
             });
             const existing = comments.find(c => c.body.includes(marker));
 
-            if (existing) {
-              previousShaRows = existing.body
-                .split('\n')
-                .filter(l => l.includes(`sha-`) && l.includes(`.${base}`));
-            }
-
-            // Remove duplicate if this SHA was already recorded
-            if (shaTag) {
-              previousShaRows = previousShaRows.filter(r => !r.includes(shaTag));
-            }
-
-            const allShaRows = [newShaRow, ...previousShaRows].filter(Boolean).join('\n');
-
             const body = [
               marker,
-              `### Preview Deployment`,
+              `### Preview Image`,
               ``,
-              `Preview deployments for this PR are available at:`,
+              // This fork has no hosted preview environment (no *.example
+              // domain, no auto-deploy target) — only publishes the image.
+              // Adjust this comment if that infrastructure gets set up later.
+              `A Docker image for this PR was pushed to GHCR:`,
               ``,
-              `| URL | Tag | Commit |`,
-              `| --- | --- | --- |`,
-              `| https://${prTag}.${base} | \`${image}:${prTag}\` | latest |`,
-              allShaRows,
+              `\`${image}:${prTag}\`${shaTag ? ` (also tagged \`${shaTag}\`)` : ''}`,
               ``,
-              `The preview environment will start automatically on first visit. Subsequent pushes to this PR will update the \`${prTag}\` image — the preview picks up the new version on restart. The per-commit URLs point to a specific version and will not change.`,
+              `Subsequent pushes to this PR update the \`${prTag}\` tag; the per-commit tag points to this specific version and won't change.`,
               ``,
               `<details>`,
               `<summary>Run locally with Docker</summary>`,

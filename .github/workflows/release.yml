@@ -48,6 +48,12 @@ jobs:
           # No tags exist yet in this repo — without a default the action
           # fails the job ("No names found, cannot describe anything").
           default: v0.0.0-dev
+      # Docker Hub push needs DOCKER_HUB_USERNAME/DOCKER_HUB_PASSWORD (a Docker
+      # Hub access token, not the account password) set as repo secrets under
+      # the thirtysixtoyota Docker Hub account — this step fails loudly until
+      # they're set, same as the deploy job's VPS secrets. Fine to defer if
+      # Docker Hub publishing isn't needed yet; GHCR below only needs the
+      # always-available GITHUB_TOKEN.
       - name: Login to Docker Hub
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
@@ -59,14 +65,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # thirtysixtoyota/vikunja on Docker Hub matches the image name already
+      # used by docker-compose.yml and docker/thirtysixtoyota/docker-compose.yml.
+      # GHCR name is derived from the repo itself (owner/repo), same pattern
+      # preview.yml already uses — GITHUB_TOKEN can only push packages under
+      # this repo's own owner, never to a different org like upstream's
+      # go-vikunja.
       - name: Docker meta version
         if: ${{ github.ref_type == 'tag' }}
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: |
-            vikunja/vikunja
-            ghcr.io/go-vikunja/vikunja
+            thirtysixtoyota/vikunja
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -79,8 +91,8 @@ jobs:
           platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8
           push: true
           tags: |
-            vikunja/vikunja:unstable
-            ghcr.io/go-vikunja/vikunja:unstable
+            thirtysixtoyota/vikunja:unstable
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:unstable
           build-args: |
             RELEASE_VERSION=${{ steps.ghd.outputs.describe }}
       - name: Build and push version
