@@ -388,14 +388,16 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 	inline-size: 100%;
 	padding: .6rem 1rem;
 	border-radius: var(--control-radius);
-	background: var(--primary);
+	// var(--primary) alone only hits ~2.3:1 for white text — --primary-dark
+	// is the same dark-enough-for-white-text shade ProjectWrapper.vue uses.
+	background: var(--primary-dark);
 	color: #ffffff;
 	font-weight: 700;
 	font-size: .95rem;
 	transition: background-color .15s ease;
 
 	&:hover {
-		background: hsla(var(--primary-h), var(--primary-s), calc(var(--primary-l) - 8%), 1);
+		background: hsla(var(--primary-h), var(--primary-s), calc(var(--primary-dark-l) - 8%), 1);
 		color: #ffffff;
 	}
 }

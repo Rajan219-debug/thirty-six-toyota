@@ -563,7 +563,8 @@ $tst-amber: #c8860a;
 	}
 
 	&__empty {
-		color: var(--grey-400);
+		// --grey-400 is ~2.5:1 on white — --grey-600 clears 4.5:1.
+		color: var(--grey-600);
 		font-style: italic;
 		font-size: .9rem;
 		padding: 1.5rem 1.25rem;

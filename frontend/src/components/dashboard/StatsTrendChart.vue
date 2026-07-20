@@ -212,12 +212,15 @@ watch(period, () => {/* buckets recompute reactively */})
 		font-weight: 600;
 		padding: .3rem .75rem;
 		border-radius: 6px;
-		color: var(--grey-500);
+		// --grey-500 on this pill's background falls just short of 4.5:1
+		// (4.39:1) — --grey-600 clears it without touching the shared var.
+		color: var(--grey-600);
 		cursor: pointer;
 
 		&.is-active {
 			background: var(--white);
-			color: var(--primary);
+			// var(--primary) alone only hits ~2.3:1 for text on white.
+			color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 			box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
 		}
 	}

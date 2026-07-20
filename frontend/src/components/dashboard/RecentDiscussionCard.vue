@@ -123,12 +123,14 @@ onMounted(async () => {
 		gap: .3rem;
 		font-size: .8rem;
 		font-weight: 600;
-		color: var(--primary);
+		// var(--primary) alone only hits ~2.3:1 for text on white.
+		color: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
 	}
 
 	&__empty {
 		font-size: .85rem;
-		color: var(--grey-400);
+		// --grey-400 is ~2.5:1 on white — --grey-600 clears 4.5:1.
+		color: var(--grey-600);
 		font-style: italic;
 		padding-block: .5rem;
 	}
