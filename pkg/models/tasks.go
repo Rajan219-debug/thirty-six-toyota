@@ -83,7 +83,7 @@ type Task struct {
 	// Can have three possible values which will trigger when the task is marked as done: 0 = repeats after the amount specified in repeat_after, 1 = repeats all dates each months (ignoring repeat_after), 3 = repeats from the current date rather than the last set date.
 	RepeatMode TaskRepeatMode `xorm:"not null default 0" json:"repeat_mode" doc:"How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date."`
 	// The task priority. Can be anything you want, it is possible to sort by this later.
-	Priority int64 `xorm:"bigint null" json:"priority"`
+	Priority int64 `xorm:"bigint null default 0" json:"priority"`
 	// Urgency input (1-5) feeding the automatic priority score, alongside importance and deadline proximity.
 	Urgency int64 `xorm:"bigint null default 0" json:"urgency" valid:"range(0|5)" minimum:"0" maximum:"5" doc:"How urgent this task is, 1 (low) to 5 (high). Feeds the automatic priority score together with importance and deadline proximity."`
 	// Importance input (1-5) feeding the automatic priority score, alongside urgency and deadline proximity.
