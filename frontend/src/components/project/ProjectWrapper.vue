@@ -246,14 +246,17 @@ function getViewRoute(view: IProjectView) {
 		margin-inline-end: .5rem;
 	}
 
+	// --switch-view-color is fixed white regardless of theme (see colors.scss);
+	// --primary-dark is the matching background dark enough for it to pass
+	// WCAG AA contrast (var(--primary) alone only hits ~3.9:1).
 	&:hover {
 		color: var(--switch-view-color);
-		background: var(--primary);
+		background: var(--primary-dark);
 	}
 
 	&.is-active {
 		color: var(--switch-view-color);
-		background: var(--primary);
+		background: var(--primary-dark);
 		font-weight: bold;
 		box-shadow: var(--shadow-xs);
 	}

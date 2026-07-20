@@ -42,19 +42,25 @@
 				:label="$t('user.settings.general.defaultView')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.defaultView"
-					:options="defaultViewOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.defaultView"
+						:options="defaultViewOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				:label="$t('user.settings.general.minimumPriority')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.minimumPriority"
-					:options="minimumPriorityOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.minimumPriority"
+						:options="minimumPriorityOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				v-if="hasFilters"
@@ -102,10 +108,13 @@
 				:label="$t('user.settings.general.language')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.language"
-					:options="languageOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.language"
+						:options="languageOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				:label="$t('user.settings.general.timezone')"
@@ -126,30 +135,39 @@
 				:label="$t('user.settings.general.weekStart')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model.number="settings.weekStart"
-					v-cy="'weekStartSelect'"
-					:options="weekStartOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model.number="settings.weekStart"
+						v-cy="'weekStartSelect'"
+						:options="weekStartOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				:label="$t('user.settings.general.dateDisplay')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.dateDisplay"
-					:options="dateDisplayOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.dateDisplay"
+						:options="dateDisplayOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				v-if="settings.frontendSettings.dateDisplay !== 'relative'"
 				:label="$t('user.settings.general.timeFormat')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.timeFormat"
-					:options="timeFormatOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.timeFormat"
+						:options="timeFormatOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				v-if="timeTrackingEnabled"
@@ -174,19 +192,25 @@
 				:label="$t('user.settings.appearance.title')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.colorSchema"
-					:options="colorSchemeOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.colorSchema"
+						:options="colorSchemeOptions"
+					/>
+				</template>
 			</FormField>
 			<FormField
 				:label="$t('user.settings.quickAddMagic.title')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.quickAddMagicMode"
-					:options="quickAddMagicModeOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.quickAddMagicMode"
+						:options="quickAddMagicModeOptions"
+					/>
+				</template>
 			</FormField>
 			<div
 				v-if="settings.frontendSettings.quickAddMagicMode !== PrefixMode.Disabled"
@@ -209,10 +233,13 @@
 				:label="$t('user.settings.general.defaultTaskRelationType')"
 				layout="two-col"
 			>
-				<FormSelect
-					v-model="settings.frontendSettings.defaultTaskRelationType"
-					:options="defaultTaskRelationTypeOptions"
-				/>
+				<template #default="{id}">
+					<FormSelect
+						:id="id"
+						v-model="settings.frontendSettings.defaultTaskRelationType"
+						:options="defaultTaskRelationTypeOptions"
+					/>
+				</template>
 			</FormField>
 			<FormCheckbox
 				v-model="settings.frontendSettings.playSoundWhenDone"

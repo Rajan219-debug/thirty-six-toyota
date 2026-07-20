@@ -204,7 +204,9 @@ const variantClass = computed<string>(() => VARIANT_CLASS_MAP[variant.value])
 	&.is-danger.is-outlined {
 		background-color: transparent;
 		border: 1px solid var(--danger);
-		color: var(--danger);
+		// --danger itself fails WCAG AA text contrast in both themes;
+		// --danger-text-l is the same fix used for --primary-text-l.
+		color: hsl(var(--danger-h) var(--danger-s) var(--danger-text-l));
 
 		&:hover,
 		&:focus {
@@ -217,7 +219,7 @@ const variantClass = computed<string>(() => VARIANT_CLASS_MAP[variant.value])
 	// Danger + text/tertiary variant
 	&.is-danger.is-text {
 		background-color: transparent;
-		color: var(--danger);
+		color: hsl(var(--danger-h) var(--danger-s) var(--danger-text-l));
 
 		&:hover {
 			background-color: hsla(var(--danger-h), var(--danger-s), var(--danger-l), 0.1);

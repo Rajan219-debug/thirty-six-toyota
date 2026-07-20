@@ -147,6 +147,10 @@
   --danger-light: hsla(var(--danger-h), var(--danger-s), var(--danger-light-l), var(--danger-a));
   --danger-dark-l: 43%;
   --danger-dark: hsla(var(--danger-h), var(--danger-s), var(--danger-dark-l), var(--danger-a));
+  // Lightness for --danger-colored TEXT specifically, same reasoning as
+  // --primary-text-l: --danger-l itself is tuned for solid button
+  // backgrounds, not text contrast. Dark mode overrides this below.
+  --danger-text-l: 40%;
   --input-color: var(--text-strong, #363636);
   --input-background-color: var(--scheme-main, white);
   //--input-border-color: var(--border, #dbdbdb);
@@ -294,7 +298,7 @@
       // fail WCAG AA (~3.7:1 / ~2.3:1) as muted text against this dark
       // background — bumped just enough to clear 4.5:1 while keeping grey-300
       // visibly darker/more muted than grey-400.
-      --grey-400: hsl(220, 8.9%, 56%);
+      --grey-400: hsl(220, 8.9%, 60%);
       --grey-300: hsl(215, 13.8%, 52%);
       --grey-200: hsl(216.9, 19.1%, 26.7%);
       --grey-100-hsl: 215, 27.9%, 16.9%;
@@ -338,6 +342,9 @@
       // Text needs to be much lighter than --primary-l against a dark background
       // (the light-mode --primary-text-l of 30% would be nearly invisible here).
       --primary-text-l: 65%;
+      // Same reasoning as --primary-text-l: --danger-l is too dark to read
+      // as text against a dark background, needs a lighter shade here.
+      --danger-text-l: 70%;
 
       --scheme-main-bis: var(--grey-100);
       --scheme-main-ter: var(--grey-100);
@@ -346,7 +353,9 @@
       --scheme-invert-ter: var(--grey-800);
 
       // Code colors
-      --code-variable: #f98181;
+      // Lightened slightly from #f98181 — that shade fell just short of
+      // WCAG AA contrast (4.16:1) against the code block's background.
+      --code-variable: #fca5a5;
       --code-literal: #fbbc88;
       --code-symbol: #b9f18d;
       --code-section: #faf594;

@@ -152,6 +152,7 @@
 							otherTaskId: task.id
 						})"
 					>
+						<span class="is-sr-only">{{ $t('misc.remove') }}</span>
 						<Icon icon="trash-alt" />
 					</BaseButton>
 				</div>

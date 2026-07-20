@@ -825,6 +825,7 @@
     "loading": "Loading…",
     "save": "Save",
     "delete": "Delete",
+    "remove": "Remove",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "disable": "Disable",

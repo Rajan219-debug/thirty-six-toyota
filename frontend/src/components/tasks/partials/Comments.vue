@@ -4,7 +4,7 @@
 		ref="commentsRef"
 		class="content details comments-container"
 	>
-		<h3
+		<h2
 			v-if="canWrite || comments.length > 0"
 			class="comments-heading"
 			:class="{'d-print-none': comments.length === 0}"
@@ -23,7 +23,7 @@
 				<Icon :icon="commentSortOrder === 'asc' ? 'arrow-down-short-wide' : 'arrow-up-short-wide'" />
 				{{ commentSortOrder === 'asc' ? $t('task.comment.sortOldestFirst') : $t('task.comment.sortNewestFirst') }}
 			</BaseButton>
-		</h3>
+		</h2>
 		<div class="comments">
 			<span
 				v-if="taskCommentService.loading && saving === null && !creating"
