@@ -252,7 +252,9 @@
   // below to a much lighter value, since the same text now sits on a dark background.
   --primary-text-l: 30%;
 
-  --link: var(--primary);
+  // Uses --primary-text-l (see above), not --primary directly — --primary
+  // alone fails contrast as link text (~2.3:1 on white).
+  --link: hsl(var(--primary-h) var(--primary-s) var(--primary-text-l));
   --link-hover: hsla(var(--primary-h), var(--primary-s), var(--primary-l), .75);
   --border: var(--grey-200);
   --input-disabled-background-color: var(--grey-100);

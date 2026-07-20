@@ -228,7 +228,9 @@ function getViewRoute(view: IProjectView) {
 	gap: .25rem;
 	font-weight: bold;
 	color: var(--switch-view-color);
-	background: var(--primary);
+	// var(--primary) alone only hits ~3.9:1 for white text — same fix as
+	// .switch-view-button below.
+	background: var(--primary-dark);
 }
 
 .dropdown-icon {
