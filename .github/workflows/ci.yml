@@ -53,15 +53,32 @@ jobs:
         # default deploy path. Until these are set, this step fails loudly
         # rather than silently skipping — a workflow step can't easily
         # detect "secret not configured" up front, so this is deliberate.
+        #
+        # Host key: set the optional VPS_HOST_KEY secret to the VPS's real
+        # `ssh-keyscan -H <host>` output (run once, out-of-band, and confirm
+        # the fingerprint against the VPS's own console/provider dashboard)
+        # to pin it. Without it, this falls back to trusting whatever host
+        # key answers live at deploy time — bare ssh-keyscan is trust-on-
+        # first-use with no pinning, so a network-path attacker in the
+        # narrow window of a deploy could MITM it. Fine to defer if the VPS
+        # doesn't exist yet; set VPS_HOST_KEY once it does.
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
           VPS_PATH: ${{ vars.VPS_PATH || '/opt/vikunja' }}
         run: |
+          set -euo pipefail
           install -m 700 -d ~/.ssh
           install -m 600 /dev/null ~/.ssh/deploy_key
           echo "$VPS_SSH_KEY" > ~/.ssh/deploy_key
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          install -m 600 /dev/null ~/.ssh/known_hosts
+          if [ -n "$VPS_HOST_KEY" ]; then
+            echo "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
+          else
+            echo "::warning::VPS_HOST_KEY not set — trusting whatever SSH host key the VPS presents live (no pinning). Set VPS_HOST_KEY (output of 'ssh-keyscan -H <host>', verified out-of-band) to close this."
+            ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
           ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" \
-            "cd '$VPS_PATH' && git pull && docker compose up -d --build"
+            "cd $(printf '%q' "$VPS_PATH") && git pull && docker compose up -d --build"
