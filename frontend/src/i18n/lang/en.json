@@ -84,8 +84,6 @@
       "openIdTotpSubmit": "Continue",
       "oauthMissingParams": "Missing required OAuth parameters: {params}",
       "oauthRedirectedToApp": "You have been redirected to the app. You can close this tab now.",
-      "desktopTryDemo": "Try the Demo",
-      "desktopCustomServer": "Custom Server URL",
       "desktopCustomServerDescription": "Enter the URL of your Thirty Six Toyota server to get started.",
       "desktopWaitingForAuth": "Waiting for authentication…",
       "desktopOAuthError": "Authentication failed: {error}",
@@ -210,7 +208,6 @@
       "caldav": {
         "title": "CalDAV",
         "howTo": "You can connect Thirty Six Toyota to CalDAV clients to view and manage all your tasks from different clients. Enter this URL into your client:",
-        "more": "More information about CalDAV in Thirty Six Toyota",
         "tokens": "CalDAV Tokens",
         "tokensHowTo": "For CalDAV authentication you can use either your normal account password or a dedicated CalDAV token.",
         "createToken": "Create a CalDAV token",
@@ -750,8 +747,6 @@
   },
   "navigation": {
     "overview": "Overview",
-    "upcoming": "Upcoming",
-    "prioritized": "Priorities",
     "dashboard": "Dashboard",
     "myTasks": "My Tasks",
     "teamView": "Departments",
@@ -776,7 +771,6 @@
     "overdue": "Overdue Tasks",
     "completionRate": "Completion Rate",
     "pendingConfirmations": "Pending Confirmations",
-    "lateCompletions": "Late Completions",
     "overduePending": "Overdue & Pending Tasks",
     "viewAll": "View All",
     "allClear": "Nothing needs attention right now.",
@@ -784,16 +778,11 @@
     "assignee": "Assignee",
     "department": "Department",
     "status": "Status",
-    "score": "Score",
     "leaderboard": "Efficiency Leaderboard",
     "noEfficiency": "No completed tasks yet.",
     "allocation": "Task Allocation",
     "noAllocation": "No open tasks to allocate.",
-    "noTime": "No tracked time yet.",
-    "lateByEmployee": "Late Completions by Employee",
-    "noLate": "No late completions. Great work!",
     "statusOverdue": "Overdue",
-    "statusOngoing": "Ongoing",
     "statusAwaiting": "Awaiting Approval",
     "statusPending": "Pending",
     "trend": {
@@ -834,7 +823,6 @@
     "searchPlaceholder": "Type to search…",
     "previous": "Previous",
     "next": "Next",
-    "poweredBy": "Powered by Thirty Six Toyota",
     "create": "Create",
     "doit": "Do it!",
     "saving": "Saving…",
@@ -845,7 +833,6 @@
     "showMenu": "Show the menu",
     "hideMenu": "Hide the menu",
     "forExample": "For example:",
-    "welcomeBack": "Welcome Back!",
     "custom": "Custom",
     "id": "ID",
     "created": "Created at",
@@ -1584,9 +1571,6 @@
     "add": "Add Note",
     "titlePlaceholder": "Title",
     "empty": "No notes yet. Add one to get started."
-  },
-  "shell": {
-    "comingSoon": "Coming soon."
   },
   "discussion": {
     "memberChat": "Member chat",
