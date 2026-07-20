@@ -28,7 +28,17 @@ const ROUTES = [
 
 async function scan(page, name) {
 	await page.waitForTimeout(1000) // let entrance animations/transitions settle
-	await page.addScriptTag({ path: axePath })
+	// A page can still navigate/reload right after load (e.g. the PWA service
+	// worker taking control for the first time triggers one reload) — on a
+	// slower CI runner that can land mid-injection and destroy the JS
+	// context. Retry once against the settled page rather than fail the scan.
+	try {
+		await page.addScriptTag({ path: axePath })
+	} catch (e) {
+		if (!e.message.includes('Execution context was destroyed')) throw e
+		await page.waitForLoadState('networkidle')
+		await page.addScriptTag({ path: axePath })
+	}
 	return page.evaluate(async () => window.axe.run())
 }
 
