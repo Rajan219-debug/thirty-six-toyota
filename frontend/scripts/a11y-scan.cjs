@@ -27,19 +27,23 @@ const ROUTES = [
 ]
 
 async function scan(page, name) {
-	await page.waitForTimeout(1000) // let entrance animations/transitions settle
 	// A page can still navigate/reload right after load (e.g. the PWA service
 	// worker taking control for the first time triggers one reload) — on a
-	// slower CI runner that can land mid-injection and destroy the JS
-	// context. Retry once against the settled page rather than fail the scan.
-	try {
-		await page.addScriptTag({ path: axePath })
-	} catch (e) {
-		if (!e.message.includes('Execution context was destroyed')) throw e
-		await page.waitForLoadState('networkidle')
-		await page.addScriptTag({ path: axePath })
+	// slower CI runner that can land at any point in this sequence (the
+	// script injection, or the evaluate call right after it) and destroy the
+	// JS context. Retry the whole sequence against the resettled page rather
+	// than fail the scan — a single guarded call wasn't enough; the crash
+	// has shown up on both sides of that boundary in practice.
+	for (let attempt = 1; ; attempt++) {
+		try {
+			await page.waitForTimeout(1000) // let entrance animations/transitions settle
+			await page.addScriptTag({ path: axePath })
+			return await page.evaluate(async () => window.axe.run())
+		} catch (e) {
+			if (!e.message.includes('Execution context was destroyed') || attempt >= 3) throw e
+			await page.waitForLoadState('networkidle')
+		}
 	}
-	return page.evaluate(async () => window.axe.run())
 }
 
 ;(async () => {
