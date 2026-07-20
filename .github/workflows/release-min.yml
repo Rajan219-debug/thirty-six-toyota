@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  workflow_call:
+
+jobs:
+  build-mage:
+    runs-on: ubuntu-latest
+    name: prepare-build-mage
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: stable
+      - name: Cache build mage
+        id: cache-build-mage
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: ${{ runner.os }}-build-mage-build-${{ hashFiles('build/magefile.go') }}
+          path: |
+            ./build/build-mage-static
+      # Statically compile build/magefile.go so publish-repos can run repo
+      # metadata targets inside ubuntu/fedora/archlinux containers without
+      # needing a Go toolchain available there.
+      - name: Install mage
+        if: ${{ steps.cache-build-mage.outputs.cache-hit != 'true' }}
+        run: go install github.com/magefile/mage@v1.17.2
+      - name: Compile build mage
+        if: ${{ steps.cache-build-mage.outputs.cache-hit != 'true' }}
+        working-directory: build
+        run: |
+          export PATH=$PATH:$GOPATH/bin
+          mage -compile ./build-mage-static
+      - name: Store build mage binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build_mage_bin
+          path: ./build/build-mage-static
